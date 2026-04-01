@@ -2,10 +2,10 @@
   "version": "0.0.1",
   "configurations": [
     {
-      "name": "UXDG Static Site",
+      "name": "CarCorp Static Site",
       "runtimeExecutable": "python",
-      "runtimeArgs": ["-m", "http.server", "3000", "--directory", "C:/Users/chira/OneDrive/Desktop/website-template"],
-      "port": 3000
+      "runtimeArgs": ["-m", "http.server", "3001", "--directory", "C:/Users/chira/OneDrive/Desktop/carcorp-website"],
+      "port": 3001
     }
   ]
 }
