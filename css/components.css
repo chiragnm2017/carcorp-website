@@ -91,10 +91,10 @@
   position: absolute;
   top: calc(100% + 8px);
   left: 0;
-  background: var(--color-bg);
-  border: 1px solid var(--color-border);
+  background: #1a1a1a;
+  border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: var(--radius-card);
-  box-shadow: var(--shadow-card-hover);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
   min-width: 220px;
   padding: 8px;
   opacity: 0;
@@ -113,12 +113,13 @@
   display: block;
   padding: 10px 14px;
   font-size: var(--text-sm);
+  color: rgba(255, 255, 255, 0.8);
   border-radius: 6px;
   transition: background var(--transition), color var(--transition);
 }
 
 .nav__dropdown-menu a:hover {
-  background: rgba(232, 115, 42, 0.06);
+  background: rgba(232, 115, 42, 0.15);
   color: var(--color-accent);
 }
 
