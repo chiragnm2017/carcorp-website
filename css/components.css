@@ -447,6 +447,10 @@
   align-items: center;
 }
 
+.hero > .container {
+  width: 100%;
+}
+
 .hero__bg {
   position: absolute;
   inset: 0;
