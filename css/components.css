@@ -7,7 +7,7 @@
   position: sticky;
   top: 0;
   z-index: 100;
-  background: var(--color-bg-dark);
+  background: #595959;
   border-bottom: 1px solid rgba(255, 255, 255, 0.08);
   transition: box-shadow var(--transition);
 }
@@ -514,8 +514,9 @@
 
 /* ---- STATS BAR ---- */
 .stats-bar {
-  background: var(--color-bg-dark);
+  background: #595959;
   padding: 40px 0;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
 }
 
 .stats-bar__grid {
