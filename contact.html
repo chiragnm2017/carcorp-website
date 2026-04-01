@@ -5,13 +5,18 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
   <title>Contact Us | Carcorp Australia</title>
-  <meta name="description" content="Get in touch with Carcorp Australia. {{META_DESCRIPTION_CONTACT}}">
+  <meta name="description" content="Contact Carcorp Australia. Speak to our automotive recruitment specialists about permanent placements, temporary staffing, or career opportunities in Victoria.">
 
   <meta property="og:type"        content="website">
   <meta property="og:url"         content="https://carcorpaust.com.au/contact.html">
   <meta property="og:title"       content="Contact Us | Carcorp Australia">
-  <meta property="og:description" content="{{META_DESCRIPTION_CONTACT}}">
+  <meta property="og:description" content="Contact Carcorp Australia. Speak to our automotive recruitment specialists about permanent placements, temporary staffing, or career opportunities in Victoria.">
   <meta property="og:image"       content="https://carcorpaust.com.au/assets/og-image.png">
+
+  <meta name="twitter:card"        content="summary_large_image">
+  <meta name="twitter:title"       content="Contact Us | Carcorp Australia">
+  <meta name="twitter:description" content="Contact Carcorp Australia. Speak to our automotive recruitment specialists about permanent placements, temporary staffing, or career opportunities in Victoria.">
+  <meta name="twitter:image"       content="https://carcorpaust.com.au/assets/og-image.png">
 
   <link rel="canonical" href="https://carcorpaust.com.au/contact.html">
 
@@ -27,10 +32,10 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 
-  <link rel="stylesheet" href="/css/variables.css">
-  <link rel="stylesheet" href="/css/base.css">
-  <link rel="stylesheet" href="/css/components.css">
-  <link rel="stylesheet" href="/css/pages.css">
+  <link rel="stylesheet" href="/css/variables.css?v=2">
+  <link rel="stylesheet" href="/css/base.css?v=2">
+  <link rel="stylesheet" href="/css/components.css?v=2">
+  <link rel="stylesheet" href="/css/pages.css?v=2">
   <link rel="icon" href="/assets/favicon.ico">
 
   <!-- Cloudflare Turnstile -->
@@ -42,7 +47,7 @@
     "@type": "ContactPage",
     "name": "Contact Carcorp Australia",
     "url": "https://carcorpaust.com.au/contact.html",
-    "description": "{{META_DESCRIPTION_CONTACT}}"
+    "description": "Contact Carcorp Australia. Speak to our automotive recruitment specialists about permanent placements, temporary staffing, or career opportunities in Victoria."
   }
   </script>
 </head>
@@ -56,7 +61,7 @@
     <div class="container">
       <div class="nav__inner">
         <a href="/" class="nav__logo" aria-label="Carcorp Australia home">
-          <img src="/assets/logo-dark.png" alt="Carcorp Australia logo" width="160" height="40">
+          <img src="/assets/logo-light.png" alt="Carcorp Australia logo" width="160" height="40">
         </a>
         <ul class="nav__links" role="list">
           <li><a href="/">Home</a></li>
@@ -101,14 +106,28 @@
     </div>
   </nav>
 
-  <!-- PAGE HERO (minimal) -->
-  <section class="hero hero--page" aria-label="Contact page header">
+  <!-- PAGE HEADER -->
+  <section class="hero hero--page" aria-label="Contact Carcorp hero">
+    <img
+      class="hero__bg"
+      src="https://images.pexels.com/photos/3184465/pexels-photo-3184465.jpeg?auto=compress&cs=tinysrgb&w=1400"
+      alt="Professional automotive business team in a meeting"
+      loading="eager"
+      fetchpriority="high"
+      style="opacity:1; object-position: center center;"
+    >
     <div class="hero__overlay" aria-hidden="true"></div>
     <div class="container">
       <div class="hero__content">
-        <span class="hero__eyebrow">Reach Out</span>
-        <h1 class="hero__title">{{CONTACT_PAGE_HEADLINE}}</h1>
-        <p class="hero__subtitle">{{CONTACT_PAGE_SUBHEADLINE}}</p>
+        <nav aria-label="Breadcrumb" style="margin-bottom:16px;">
+          <ol class="breadcrumb" style="color:rgba(255,255,255,0.55);">
+            <li><a href="/" style="color:rgba(255,255,255,0.55);">Home</a></li>
+            <li aria-hidden="true">›</li>
+            <li aria-current="page" style="color:rgba(255,255,255,0.8);">Contact</li>
+          </ol>
+        </nav>
+        <h1 class="hero__title">Get in Touch</h1>
+        <p class="hero__subtitle">Whether you're an employer looking for talent or a professional exploring your next opportunity, we'd love to hear from you.</p>
       </div>
     </div>
   </section>
@@ -135,18 +154,9 @@
               </div>
             </div>
 
-            <div class="grid-2">
-              <div class="form-group">
-                <label for="phone">Phone Number</label>
-                <input type="tel" id="phone" name="phone" autocomplete="tel" placeholder="(03) 9000 0000">
-              </div>
-              <div class="form-group">
-                <label for="enquiry_type">I am a <span aria-hidden="true">*</span></label>
-                <select id="enquiry_type" name="enquiry_type" required>
-                  <option value="" disabled selected>Select one…</option>
-                  {{FORM_ENQUIRY_TYPE_OPTIONS}}
-                </select>
-              </div>
+            <div class="form-group">
+              <label for="phone">Phone Number</label>
+              <input type="tel" id="phone" name="phone" autocomplete="tel" placeholder="(03) 9000 0000">
             </div>
 
             <div class="form-group">
@@ -174,26 +184,23 @@
           <div class="contact__card">
             <h2 class="contact__card-title">Our Details</h2>
 
-            <div class="footer__contact-item">
-              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle></svg>
+            <div class="contact__detail-item">
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--color-accent)" stroke-width="2" aria-hidden="true" style="flex-shrink:0; margin-top:2px;"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle></svg>
               <span>Suite 305 / 75 Tulip Street, Cheltenham VIC 3192</span>
             </div>
 
-            <div class="footer__contact-item">
-              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 13a19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 3.6 2h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"></path></svg>
-              <div>
-                <a href="tel:0395834535">(03) 9583 4535</a>
-                {{PHONE_SECONDARY_HTML}}
-              </div>
+            <div class="contact__detail-item">
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--color-accent)" stroke-width="2" aria-hidden="true" style="flex-shrink:0; margin-top:2px;"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 13a19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 3.6 2h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"></path></svg>
+              <a href="tel:0395834535">(03) 9583 4535</a>
             </div>
 
-            <div class="footer__contact-item">
-              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path><polyline points="22,6 12,13 2,6"></polyline></svg>
+            <div class="contact__detail-item">
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--color-accent)" stroke-width="2" aria-hidden="true" style="flex-shrink:0; margin-top:2px;"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path><polyline points="22,6 12,13 2,6"></polyline></svg>
               <a href="mailto:enq@carcorpaust.com.au">enq@carcorpaust.com.au</a>
             </div>
 
-            <div class="footer__contact-item">
-              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
+            <div class="contact__detail-item">
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--color-accent)" stroke-width="2" aria-hidden="true" style="flex-shrink:0; margin-top:2px;"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
               <span>Mon-Fri 8:30am-5:30pm. Saturday closed.</span>
             </div>
           </div>

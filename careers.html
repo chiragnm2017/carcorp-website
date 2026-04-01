@@ -13,6 +13,11 @@
   <meta property="og:description" content="Join our team at Carcorp Australia.">
   <meta property="og:image"       content="https://carcorpaust.com.au/assets/og-image.png">
 
+  <meta name="twitter:card"        content="summary_large_image">
+  <meta name="twitter:title"       content="Careers | Carcorp Australia">
+  <meta name="twitter:description" content="Join Carcorp Australia. Explore current job opportunities and build your career in automotive recruitment.">
+  <meta name="twitter:image"       content="https://carcorpaust.com.au/assets/og-image.png">
+
   <link rel="canonical" href="https://carcorpaust.com.au/careers.html">
 
   <!-- Google Tag Manager -->
@@ -27,10 +32,10 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 
-  <link rel="stylesheet" href="/css/variables.css">
-  <link rel="stylesheet" href="/css/base.css">
-  <link rel="stylesheet" href="/css/components.css">
-  <link rel="stylesheet" href="/css/pages.css">
+  <link rel="stylesheet" href="/css/variables.css?v=2">
+  <link rel="stylesheet" href="/css/base.css?v=2">
+  <link rel="stylesheet" href="/css/components.css?v=2">
+  <link rel="stylesheet" href="/css/pages.css?v=2">
   <link rel="icon" href="/assets/favicon.ico">
 </head>
 <body>
@@ -88,16 +93,31 @@
     </div>
   </nav>
 
-  <!-- PAGE HEADER (clean - no hero image on careers) -->
-  <header class="careers__header">
+  <!-- PAGE HEADER -->
+  <section class="hero hero--page" aria-label="Careers at Carcorp hero">
+    <img
+      class="hero__bg"
+      src="https://images.pexels.com/photos/3184291/pexels-photo-3184291.jpeg?auto=compress&cs=tinysrgb&w=1400"
+      alt="Team of automotive professionals collaborating"
+      loading="eager"
+      fetchpriority="high"
+      style="opacity:1; object-position: center center;"
+    >
+    <div class="hero__overlay" aria-hidden="true"></div>
     <div class="container">
-      <div class="careers__header-inner">
-        <span class="eyebrow">Join the Team</span>
-        <h1>{{CAREERS_PAGE_HEADLINE}}</h1>
-        <p>{{CAREERS_PAGE_SUBHEADLINE}}</p>
+      <div class="hero__content">
+        <nav aria-label="Breadcrumb" style="margin-bottom:16px;">
+          <ol class="breadcrumb" style="color:rgba(255,255,255,0.55);">
+            <li><a href="/" style="color:rgba(255,255,255,0.55);">Home</a></li>
+            <li aria-hidden="true">›</li>
+            <li aria-current="page" style="color:rgba(255,255,255,0.8);">Careers</li>
+          </ol>
+        </nav>
+        <h1 class="hero__title">Careers at Carcorp Australia</h1>
+        <p class="hero__subtitle">We're always looking for talented professionals to join our team. Explore current openings below.</p>
       </div>
     </div>
-  </header>
+  </section>
 
   <!-- JOB LISTINGS -->
   <main class="careers__body">

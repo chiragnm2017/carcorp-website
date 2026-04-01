@@ -1,13 +1,13 @@
 # Carcorp Australia
 
 ## About
-{{LLMS_ABOUT_PARAGRAPH}}
+Carcorp Australia is an automotive recruitment specialist based in Cheltenham, Victoria, with over 20 years of experience exclusively in the automotive industry. We place permanent and temporary professionals across dealerships, service centres, and automotive businesses throughout Victoria.
 
 ## Services
-{{LLMS_SERVICES_PARAGRAPH}}
+We offer three core services: Career Services (helping job seekers find roles in the automotive industry), Recruitment Services (helping employers find qualified permanent staff), and Temporary Staffing (fast, flexible staff for short-term and seasonal needs).
 
 ## Who We Work With
-{{LLMS_CLIENTS_PARAGRAPH}}
+We work with automotive dealerships, service centres, parts operations, and automotive businesses across Victoria. We also assist automotive professionals at all career stages who are looking for their next permanent or temporary role.
 
 ## Contact
 - Phone: (03) 9583 4535
