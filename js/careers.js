@@ -54,6 +54,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       <article class="job-card" data-type="${job.type.toLowerCase()}">
         <span class="job-card__type job-card__type--${job.type.toLowerCase()}">${job.type}</span>
         <h3 class="job-card__title">${escapeHtml(job.title)}</h3>
+        ${job.company ? `<p class="job-card__company">${escapeHtml(job.company)}</p>` : ''}
         <p class="job-card__location">
           <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle></svg>
           ${escapeHtml(job.location)}

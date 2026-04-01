@@ -1054,7 +1054,14 @@
 .job-card__title {
   font-size: 1.0625rem;
   font-weight: 600;
-  margin-bottom: 8px;
+  margin-bottom: 4px;
+}
+
+.job-card__company {
+  font-size: var(--text-sm);
+  font-weight: 500;
+  color: var(--color-accent);
+  margin-bottom: 10px;
 }
 
 .job-card__location {
