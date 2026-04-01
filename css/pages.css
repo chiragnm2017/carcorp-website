@@ -83,8 +83,62 @@
 }
 
 /* ---- HOME: How it works ---- */
-.how-it-works .process-steps {
+.how-it-works__layout {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 64px;
+  align-items: center;
   margin-top: 48px;
+}
+
+.how-it-works__layout .process-steps {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  margin-top: 0;
+}
+
+.how-it-works__layout .process-step {
+  text-align: left;
+  display: flex;
+  gap: 20px;
+  align-items: flex-start;
+  padding: 24px 0;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.how-it-works__layout .process-step:last-child {
+  border-bottom: none;
+}
+
+.how-it-works__layout .process-step__number {
+  flex-shrink: 0;
+  margin-bottom: 0;
+}
+
+.how-it-works__image {
+  border-radius: 16px;
+  overflow: hidden;
+  aspect-ratio: 3/4;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.14);
+}
+
+.how-it-works__image img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center top;
+}
+
+@media (max-width: 900px) {
+  .how-it-works__layout {
+    grid-template-columns: 1fr;
+    gap: 36px;
+  }
+  .how-it-works__image {
+    aspect-ratio: 16/9;
+    order: -1;
+  }
 }
 
 /* ---- SERVICE PAGE layout ---- */
