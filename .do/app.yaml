@@ -3,7 +3,7 @@ static_sites:
   - name: carcorp-website-site
     github:
       repo: chiragnm2017/carcorp-website
-      branch: main
+      branch: master
       deploy_on_push: true
     source_dir: /
     output_dir: /
