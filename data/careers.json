@@ -1,0 +1,23 @@
+[
+  {
+    "id": "role-001",
+    "title": "{{SAMPLE_ROLE_1_TITLE}}",
+    "location": "{{SAMPLE_ROLE_1_LOCATION}}",
+    "type": "Permanent",
+    "description": "{{SAMPLE_ROLE_1_DESC}}"
+  },
+  {
+    "id": "role-002",
+    "title": "{{SAMPLE_ROLE_2_TITLE}}",
+    "location": "{{SAMPLE_ROLE_2_LOCATION}}",
+    "type": "Temporary",
+    "description": "{{SAMPLE_ROLE_2_DESC}}"
+  },
+  {
+    "id": "role-003",
+    "title": "{{SAMPLE_ROLE_3_TITLE}}",
+    "location": "{{SAMPLE_ROLE_3_LOCATION}}",
+    "type": "Permanent",
+    "description": "{{SAMPLE_ROLE_3_DESC}}"
+  }
+]

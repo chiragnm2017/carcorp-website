@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="en-AU">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <title>Careers | Carcorp Australia</title>
+  <meta name="description" content="{{META_DESCRIPTION_CAREERS}}">
+
+  <meta property="og:type"        content="website">
+  <meta property="og:url"         content="https://carcorpaust.com.au/careers.html">
+  <meta property="og:title"       content="Careers | Carcorp Australia">
+  <meta property="og:description" content="{{META_DESCRIPTION_CAREERS}}">
+  <meta property="og:image"       content="https://carcorpaust.com.au/assets/og-image.png">
+
+  <link rel="canonical" href="https://carcorpaust.com.au/careers.html">
+
+  <!-- Google Tag Manager -->
+  <script>(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
+  new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],
+  j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
+  'https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);
+  })(window,document,'script','dataLayer','GTM-KJ8C8QLH');</script>
+  <!-- End Google Tag Manager -->
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+  <link rel="stylesheet" href="/css/variables.css">
+  <link rel="stylesheet" href="/css/base.css">
+  <link rel="stylesheet" href="/css/components.css">
+  <link rel="stylesheet" href="/css/pages.css">
+  <link rel="icon" href="/assets/favicon.ico">
+</head>
+<body>
+
+  <noscript><iframe src="https://www.googletagmanager.com/ns.html?id=GTM-KJ8C8QLH"
+  height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
+
+  <!-- NAVIGATION -->
+  <nav class="nav" role="navigation" aria-label="Main navigation">
+    <div class="container">
+      <div class="nav__inner">
+        <a href="/" class="nav__logo" aria-label="Carcorp Australia home">
+          <img src="/assets/logo-dark.png" alt="Carcorp Australia logo" width="160" height="40">
+        </a>
+        <ul class="nav__links" role="list">
+          <li><a href="/">Home</a></li>
+          <li class="nav__dropdown">
+            <button class="nav__dropdown-toggle" aria-expanded="false" aria-haspopup="true">
+              Our Services
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><polyline points="6 9 12 15 18 9"></polyline></svg>
+            </button>
+            <ul class="nav__dropdown-menu" role="list">
+              <li><a href="/services/service-1.html">Career Services</a></li>
+              <li><a href="/services/service-2.html">Recruitment Services</a></li>
+              <li><a href="/services/service-3.html">Temporary Staffing</a></li>
+            </ul>
+          </li>
+          <li><a href="/careers.html" class="active">Careers</a></li>
+          <li><a href="/about.html">About Us</a></li>
+          <li><a href="/contact.html">Contact</a></li>
+        </ul>
+        <div class="nav__cta">
+          <a href="tel:0395834535" class="nav__phone">(03) 9583 4535</a>
+          <a href="/contact.html" class="btn btn--primary btn--sm">Get in Touch</a>
+        </div>
+        <button class="nav__hamburger" aria-label="Open menu" aria-expanded="false">
+          <span></span><span></span><span></span>
+        </button>
+      </div>
+    </div>
+    <div class="nav__mobile" aria-label="Mobile navigation">
+      <span class="nav__mobile-section-title">Menu</span>
+      <a href="/">Home</a>
+      <span class="nav__mobile-section-title">Our Services</span>
+      <a href="/services/service-1.html">Career Services</a>
+      <a href="/services/service-2.html">Recruitment Services</a>
+      <a href="/services/service-3.html">Temporary Staffing</a>
+      <a href="/careers.html">Careers</a>
+      <a href="/about.html">About Us</a>
+      <a href="/contact.html">Contact</a>
+      <a href="tel:0395834535" class="nav__mobile-phone">
+        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 13a19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 3.6 2h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"></path></svg>
+        (03) 9583 4535
+      </a>
+    </div>
+  </nav>
+
+  <!-- PAGE HEADER (clean - no hero image on careers) -->
+  <header class="careers__header">
+    <div class="container">
+      <div class="careers__header-inner">
+        <span class="eyebrow">Join the Team</span>
+        <h1>{{CAREERS_PAGE_HEADLINE}}</h1>
+        <p>{{CAREERS_PAGE_SUBHEADLINE}}</p>
+      </div>
+    </div>
+  </header>
+
+  <!-- JOB LISTINGS -->
+  <main class="careers__body">
+    <div class="container">
+
+      <!-- Filter bar -->
+      <div class="job-filter" role="group" aria-label="Filter jobs by type">
+        <button class="job-filter__btn active" data-filter="all">All Roles</button>
+        <button class="job-filter__btn" data-filter="permanent">Permanent</button>
+        <button class="job-filter__btn" data-filter="temporary">Temporary</button>
+      </div>
+
+      <!-- Job cards rendered by careers.js -->
+      <div id="job-cards" class="job-cards" aria-live="polite" aria-label="Available roles">
+        <!-- Loaded dynamically from data/careers.json -->
+        <p style="color:var(--color-text-muted);">Loading roles…</p>
+      </div>
+
+      <!-- Register interest CTA -->
+      <div style="margin-top:56px; padding:40px; background:var(--color-bg-grey); border-radius:var(--radius-card); text-align:center;">
+        <h2 style="margin-bottom:12px; font-size:var(--text-2xl);">{{CAREERS_REGISTER_HEADLINE}}</h2>
+        <p style="color:var(--color-text-muted); margin-bottom:28px;">{{CAREERS_REGISTER_SUBTEXT}}</p>
+        <a href="/contact.html" class="btn btn--primary">Register Your Interest</a>
+      </div>
+
+    </div>
+  </main>
+
+  <!-- FOOTER -->
+  <footer class="footer" role="contentinfo">
+    <div class="container">
+      <div class="footer__grid">
+        <div>
+          <div class="footer__logo">
+            <img src="/assets/logo-light.png" alt="Carcorp Australia logo" width="140" height="36">
+          </div>
+          <p class="footer__tagline">The leading employment specialists in permanent and temporary recruitment within the automotive industry.</p>
+        </div>
+        <div>
+          <h3 class="footer__heading">Services</h3>
+          <ul class="footer__links" role="list">
+            <li><a href="/services/service-1.html">Career Services</a></li>
+            <li><a href="/services/service-2.html">Recruitment Services</a></li>
+            <li><a href="/services/service-3.html">Temporary Staffing</a></li>
+          </ul>
+        </div>
+        <div>
+          <h3 class="footer__heading">Company</h3>
+          <ul class="footer__links" role="list">
+            <li><a href="/about.html">About Us</a></li>
+            <li><a href="/careers.html">Careers</a></li>
+            <li><a href="/contact.html">Contact</a></li>
+            <li><a href="/privacy.html">Privacy Policy</a></li>
+          </ul>
+        </div>
+        <div>
+          <h3 class="footer__heading">Contact</h3>
+          <div class="footer__contact-item">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 13a19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 3.6 2h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"></path></svg>
+            <a href="tel:0395834535">(03) 9583 4535</a>
+          </div>
+          <div class="footer__contact-item">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path><polyline points="22,6 12,13 2,6"></polyline></svg>
+            <a href="mailto:enq@carcorpaust.com.au">enq@carcorpaust.com.au</a>
+          </div>
+        </div>
+      </div>
+      <div class="footer__bottom">
+        <span>© <span id="footer-year"></span> Carcorp Australia. All rights reserved.</span>
+        <div class="footer__bottom-links">
+          <a href="/privacy.html">Privacy Policy</a>
+          <a href="/contact.html">Contact</a>
+        </div>
+      </div>
+    </div>
+  </footer>
+
+  <script src="/js/main.js"></script>
+  <script src="/js/careers.js"></script>
+  <script>document.getElementById('footer-year').textContent = new Date().getFullYear();</script>
+
+</body>
+</html>

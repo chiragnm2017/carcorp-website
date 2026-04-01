@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>New Enquiry — Carcorp Australia</title>
+</head>
+<body style="margin:0;padding:0;background:#F5F5F5;font-family:'Helvetica Neue',Arial,sans-serif;">
+
+  <table width="100%" cellpadding="0" cellspacing="0" style="background:#F5F5F5;padding:40px 0;">
+    <tr>
+      <td align="center">
+        <table width="600" cellpadding="0" cellspacing="0" style="background:#FFFFFF;border-radius:10px;overflow:hidden;max-width:600px;width:100%;">
+
+          <!-- Header -->
+          <tr>
+            <td style="background:#111111;padding:32px 40px;text-align:center;">
+              <p style="margin:0;display:inline-block;padding:6px 18px;background:#E8732A;color:#fff;font-size:12px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;border-radius:100px;">NEW ENQUIRY</p>
+              <p style="margin:12px 0 0;color:rgba(255,255,255,0.7);font-size:13px;">Carcorp Australia Contact Form</p>
+            </td>
+          </tr>
+
+          <!-- Body -->
+          <tr>
+            <td style="padding:40px;">
+              <table width="100%" cellpadding="0" cellspacing="0">
+                <tr>
+                  <td style="padding-bottom:24px;">
+                    <p style="margin:0;font-size:15px;color:#1A1A1A;line-height:1.6;">A new enquiry has been submitted via the website contact form. Details below.</p>
+                  </td>
+                </tr>
+
+                <!-- Data table -->
+                <tr>
+                  <td>
+                    <table width="100%" cellpadding="0" cellspacing="0" style="border:1px solid #E5E5E5;border-radius:8px;overflow:hidden;">
+                      <tr style="background:#F9F9F9;">
+                        <td style="padding:12px 16px;font-size:12px;font-weight:700;color:#666;text-transform:uppercase;letter-spacing:0.06em;width:35%;border-bottom:1px solid #E5E5E5;">Name</td>
+                        <td style="padding:12px 16px;font-size:14px;color:#1A1A1A;border-bottom:1px solid #E5E5E5;">{{full_name}}</td>
+                      </tr>
+                      <tr>
+                        <td style="padding:12px 16px;font-size:12px;font-weight:700;color:#666;text-transform:uppercase;letter-spacing:0.06em;border-bottom:1px solid #E5E5E5;">Email</td>
+                        <td style="padding:12px 16px;font-size:14px;color:#1A1A1A;border-bottom:1px solid #E5E5E5;"><a href="mailto:{{email}}" style="color:#E8732A;">{{email}}</a></td>
+                      </tr>
+                      <tr style="background:#F9F9F9;">
+                        <td style="padding:12px 16px;font-size:12px;font-weight:700;color:#666;text-transform:uppercase;letter-spacing:0.06em;border-bottom:1px solid #E5E5E5;">Phone</td>
+                        <td style="padding:12px 16px;font-size:14px;color:#1A1A1A;border-bottom:1px solid #E5E5E5;">{{phone}}</td>
+                      </tr>
+                      <tr>
+                        <td style="padding:12px 16px;font-size:12px;font-weight:700;color:#666;text-transform:uppercase;letter-spacing:0.06em;border-bottom:1px solid #E5E5E5;">I am a</td>
+                        <td style="padding:12px 16px;font-size:14px;color:#1A1A1A;border-bottom:1px solid #E5E5E5;">{{enquiry_type}}</td>
+                      </tr>
+                      <tr style="background:#F9F9F9;">
+                        <td style="padding:12px 16px;font-size:12px;font-weight:700;color:#666;text-transform:uppercase;letter-spacing:0.06em;border-bottom:1px solid #E5E5E5;">Subject</td>
+                        <td style="padding:12px 16px;font-size:14px;color:#1A1A1A;border-bottom:1px solid #E5E5E5;">{{subject}}</td>
+                      </tr>
+                      <tr>
+                        <td style="padding:12px 16px;font-size:12px;font-weight:700;color:#666;text-transform:uppercase;letter-spacing:0.06em;vertical-align:top;">Message</td>
+                        <td style="padding:12px 16px;font-size:14px;color:#1A1A1A;line-height:1.6;">{{message}}</td>
+                      </tr>
+                    </table>
+                  </td>
+                </tr>
+
+                <!-- CTA -->
+                <tr>
+                  <td style="padding-top:28px;text-align:center;">
+                    <a href="mailto:{{email}}" style="display:inline-block;padding:13px 28px;background:#E8732A;color:#fff;text-decoration:none;font-size:14px;font-weight:600;border-radius:6px;">Reply to {{full_name}}</a>
+                  </td>
+                </tr>
+
+              </table>
+            </td>
+          </tr>
+
+          <!-- Footer -->
+          <tr>
+            <td style="background:#F9F9F9;padding:20px 40px;text-align:center;border-top:1px solid #E5E5E5;">
+              <p style="margin:0;font-size:12px;color:#999;">Carcorp Australia &bull; Suite 305 / 75 Tulip Street, Cheltenham VIC 3192</p>
+              <p style="margin:6px 0 0;font-size:12px;color:#999;">Submitted: {{submitted_at}}</p>
+            </td>
+          </tr>
+
+        </table>
+      </td>
+    </tr>
+  </table>
+
+</body>
+</html>

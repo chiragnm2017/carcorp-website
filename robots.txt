@@ -1,0 +1,8 @@
+User-agent: *
+Allow: /
+
+# Block admin/internal paths if added later
+Disallow: /admin/
+Disallow: /data/
+
+Sitemap: https://carcorpaust.com.au/sitemap.xml

@@ -1,0 +1,31 @@
+# Carcorp Australia
+
+## About
+{{LLMS_ABOUT_PARAGRAPH}}
+
+## Services
+{{LLMS_SERVICES_PARAGRAPH}}
+
+## Who We Work With
+{{LLMS_CLIENTS_PARAGRAPH}}
+
+## Contact
+- Phone: (03) 9583 4535
+- Email: enq@carcorpaust.com.au
+- Address: Suite 305 / 75 Tulip Street, Cheltenham VIC 3192
+- Hours: Mon-Fri 8:30am-5:30pm. Saturday closed.
+- Website: https://carcorpaust.com.au
+
+## Key Facts
+- Founded: 20+ years in the automotive industry
+- Location: Cheltenham, VIC, Australia
+- Industry: Automotive Recruitment
+
+## Pages
+- Home: https://carcorpaust.com.au/
+- About: https://carcorpaust.com.au/about.html
+- Career Services: https://carcorpaust.com.au/services/service-1.html
+- Recruitment Services: https://carcorpaust.com.au/services/service-2.html
+- Temporary Staffing: https://carcorpaust.com.au/services/service-3.html
+- Careers: https://carcorpaust.com.au/careers.html
+- Contact: https://carcorpaust.com.au/contact.html

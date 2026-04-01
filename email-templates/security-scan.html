@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Security Alert — Carcorp Australia</title>
+</head>
+<body style="margin:0;padding:0;background:#F5F5F5;font-family:'Helvetica Neue',Arial,sans-serif;">
+
+  <table width="100%" cellpadding="0" cellspacing="0" style="background:#F5F5F5;padding:40px 0;">
+    <tr>
+      <td align="center">
+        <table width="600" cellpadding="0" cellspacing="0" style="background:#FFFFFF;border-radius:10px;overflow:hidden;max-width:600px;width:100%;">
+
+          <!-- Header -->
+          <tr>
+            <td style="background:#111111;padding:32px 40px;text-align:center;">
+              <p style="margin:0;display:inline-block;padding:6px 18px;background:#E8732A;color:#fff;font-size:12px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;border-radius:100px;">SECURITY ALERT</p>
+              <p style="margin:12px 0 0;color:rgba(255,255,255,0.7);font-size:13px;">Carcorp Australia Website — Automated Security Scan</p>
+            </td>
+          </tr>
+
+          <!-- Body -->
+          <tr>
+            <td style="padding:40px;">
+              <p style="margin:0 0 24px;font-size:15px;color:#1A1A1A;line-height:1.6;">The Security Guardian workflow has found issues that need your attention. Review the GitHub issue for full details.</p>
+
+              <!-- Severity summary -->
+              <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:28px;">
+                <tr>
+                  <td width="25%" style="padding:4px;">
+                    <div style="background:#FEF2F2;border:1px solid #FECACA;border-radius:8px;padding:16px;text-align:center;">
+                      <div style="font-size:24px;font-weight:700;color:#991B1B;">{{critical_count}}</div>
+                      <div style="font-size:11px;font-weight:600;color:#991B1B;text-transform:uppercase;margin-top:4px;">Critical</div>
+                    </div>
+                  </td>
+                  <td width="25%" style="padding:4px;">
+                    <div style="background:#FFF7ED;border:1px solid #FED7AA;border-radius:8px;padding:16px;text-align:center;">
+                      <div style="font-size:24px;font-weight:700;color:#9A3412;">{{high_count}}</div>
+                      <div style="font-size:11px;font-weight:600;color:#9A3412;text-transform:uppercase;margin-top:4px;">High</div>
+                    </div>
+                  </td>
+                  <td width="25%" style="padding:4px;">
+                    <div style="background:#FEFCE8;border:1px solid #FEF08A;border-radius:8px;padding:16px;text-align:center;">
+                      <div style="font-size:24px;font-weight:700;color:#854D0E;">{{medium_count}}</div>
+                      <div style="font-size:11px;font-weight:600;color:#854D0E;text-transform:uppercase;margin-top:4px;">Medium</div>
+                    </div>
+                  </td>
+                  <td width="25%" style="padding:4px;">
+                    <div style="background:#F0FDF4;border:1px solid #BBF7D0;border-radius:8px;padding:16px;text-align:center;">
+                      <div style="font-size:24px;font-weight:700;color:#166534;">{{low_count}}</div>
+                      <div style="font-size:11px;font-weight:600;color:#166534;text-transform:uppercase;margin-top:4px;">Low</div>
+                    </div>
+                  </td>
+                </tr>
+              </table>
+
+              <!-- CTA -->
+              <div style="text-align:center;">
+                <a href="{{github_issue_url}}" style="display:inline-block;padding:13px 28px;background:#111111;color:#fff;text-decoration:none;font-size:14px;font-weight:600;border-radius:6px;">View Full Report on GitHub</a>
+              </div>
+            </td>
+          </tr>
+
+          <!-- Footer -->
+          <tr>
+            <td style="background:#F9F9F9;padding:20px 40px;text-align:center;border-top:1px solid #E5E5E5;">
+              <p style="margin:0;font-size:12px;color:#999;">Carcorp Australia &bull; Automated Security Guardian</p>
+              <p style="margin:6px 0 0;font-size:12px;color:#999;">Scan date: {{scan_date}}</p>
+            </td>
+          </tr>
+
+        </table>
+      </td>
+    </tr>
+  </table>
+
+</body>
+</html>

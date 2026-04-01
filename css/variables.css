@@ -1,0 +1,49 @@
+/* =============================================
+   BRAND TOKENS — Edit these for each project
+   =============================================
+   Replace all values below with brand-specific
+   colours, fonts, and settings before building.
+   ============================================= */
+
+:root {
+  /* --- Colours --- */
+  --color-bg:           #FFFFFF;   /* Main page background */
+  --color-bg-grey:      #F5F5F5;   /* Alternating section background */
+  --color-bg-dark:      #111111;   /* Dark sections: hero, footer, CTA strips */
+  --color-bg-mid:       #2D2D2D;   /* Mid-dark: cards on dark bg */
+  --color-accent:       #E8732A;   /* Primary CTA: buttons, links, highlights */
+  --color-accent-dark:  #C75E1A;   /* Hover state for accent */
+  --color-text:         #1A1A1A;   /* Primary body text */
+  --color-text-muted:   #666666;   /* Secondary / supporting text */
+  --color-text-light:   #FFFFFF;   /* Text on dark backgrounds */
+  --color-border:       #E5E5E5;   /* Card and divider borders */
+  --color-overlay:      rgba(17, 17, 17, 0.72); /* Hero image overlay */
+
+  /* --- Typography --- */
+  --font-family: 'Inter', sans-serif;
+
+  /* Scale */
+  --text-xs:   0.8125rem;   /* 13px */
+  --text-sm:   0.875rem;    /* 14px */
+  --text-base: 1.0625rem;   /* 17px */
+  --text-lg:   1.125rem;    /* 18px */
+  --text-xl:   1.375rem;    /* 22px */
+  --text-2xl:  1.5rem;      /* 24px */
+  --text-3xl:  2.25rem;     /* 36px */
+  --text-4xl:  3.25rem;     /* 52px */
+
+  /* --- Layout --- */
+  --max-width: 1200px;
+  --section-pad: 88px;
+  --section-pad-mobile: 48px;
+
+  /* --- Components --- */
+  --radius-btn:  6px;
+  --radius-card: 10px;
+  --shadow-card: 0 2px 12px rgba(0, 0, 0, 0.07);
+  --shadow-card-hover: 0 8px 28px rgba(0, 0, 0, 0.12);
+
+  /* --- Transitions --- */
+  --transition: 0.2s ease;
+  --transition-slow: 0.35s ease;
+}
