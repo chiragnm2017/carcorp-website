@@ -83,6 +83,58 @@ jobs:
             FINDINGS="${FINDINGS}\n### LOW: $TODO_COUNT TODO/FIXME comment(s) remaining\n"
           fi
 
+          # ── CRITICAL: Webhook URL exposed in public client-side JS ─────────
+          if grep -rn "hooks\.zapier\.com\|hooks\.make\.com\|webhook\.site\|discord\.com/api/webhooks" \
+               --include="*.js" --include="*.html" . 2>/dev/null \
+             | grep -v "worker/" | grep -q .; then
+            CRITICAL=$((CRITICAL+1))
+            FINDINGS="${FINDINGS}\n### CRITICAL: Webhook URL exposed in public client-side code\nThe Zapier/Make webhook URL must only exist as a Worker secret — never in JS or HTML.\n\`\`\`\n$(grep -rn "hooks\.zapier\.com\|hooks\.make\.com" --include="*.js" --include="*.html" . | grep -v "worker/" | head -5)\n\`\`\`\n"
+          fi
+
+          # ── CRITICAL: Form posting directly to external webhook ───────────
+          if grep -rn "fetch.*hooks\.\|fetch.*webhook" --include="*.js" . 2>/dev/null \
+             | grep -v "worker/" | grep -q .; then
+            CRITICAL=$((CRITICAL+1))
+            FINDINGS="${FINDINGS}\n### CRITICAL: Direct webhook fetch in client-side JS\nAll form submissions must route through the /api/contact Worker proxy, not directly to Zapier.\n\`\`\`\n$(grep -rn "fetch.*hooks\." --include="*.js" . | grep -v "worker/" | head -5)\n\`\`\`\n"
+          fi
+
+          # ── HIGH: form.js missing Turnstile token check ───────────────────
+          if [ -f "js/form.js" ]; then
+            if ! grep -q "cf-turnstile-response" "js/form.js"; then
+              HIGH=$((HIGH+1))
+              FINDINGS="${FINDINGS}\n### HIGH: form.js does not verify Turnstile token — CAPTCHA is bypassable\nAdd check for [name=\"cf-turnstile-response\"] before submission.\n"
+            fi
+          fi
+
+          # ── HIGH: form.js not routing through Worker proxy ────────────────
+          if [ -f "js/form.js" ]; then
+            if ! grep -q "/api/contact" "js/form.js"; then
+              HIGH=$((HIGH+1))
+              FINDINGS="${FINDINGS}\n### HIGH: form.js is not routing through /api/contact Worker proxy\nDirect webhook posting exposes the Zapier URL and bypasses server-side validation.\n"
+            fi
+          fi
+
+          # ── HIGH: no-cors fetch mode in public JS ─────────────────────────
+          if grep -rn "no-cors" --include="*.js" . 2>/dev/null | grep -v "worker/" | grep -q .; then
+            HIGH=$((HIGH+1))
+            FINDINGS="${FINDINGS}\n### HIGH: no-cors fetch mode in client-side JS — responses cannot be verified\nUse a Worker proxy instead so real HTTP status codes are readable.\n\`\`\`\n$(grep -rn "no-cors" --include="*.js" . | grep -v "worker/" | head -5)\n\`\`\`\n"
+          fi
+
+          # ── HIGH: External scripts missing SRI integrity attribute ─────────
+          SRI_MISSING=$(grep -rn '<script src="https://' --include="*.html" . | grep -v 'integrity=' | wc -l)
+          if [ "$SRI_MISSING" -gt 0 ]; then
+            HIGH=$((HIGH+1))
+            FINDINGS="${FINDINGS}\n### HIGH: $SRI_MISSING external <script> tag(s) loaded without SRI integrity attribute\nA compromised CDN can inject malicious code. Add integrity= and crossorigin= attributes.\n"
+          fi
+
+          # ── MEDIUM: novalidate form without JS validation ─────────────────
+          NOVALIDATE_COUNT=$(grep -rn "novalidate" --include="*.html" . | wc -l)
+          JS_VALIDATION=$(grep -rn "querySelectorAll.*required\|checkValidity\|reportValidity" --include="*.js" . | wc -l)
+          if [ "$NOVALIDATE_COUNT" -gt 0 ] && [ "$JS_VALIDATION" -eq 0 ]; then
+            MEDIUM=$((MEDIUM+1))
+            FINDINGS="${FINDINGS}\n### MEDIUM: Form uses novalidate but no JS validation found\nnovalidate disables browser validation — JS validation must compensate.\n"
+          fi
+
           # ── robots.txt and sitemap present ───────────────────────────────
           [ ! -f "robots.txt" ]  && { MEDIUM=$((MEDIUM+1)); FINDINGS="${FINDINGS}\n### MEDIUM: robots.txt missing\n"; }
           [ ! -f "sitemap.xml" ] && { MEDIUM=$((MEDIUM+1)); FINDINGS="${FINDINGS}\n### MEDIUM: sitemap.xml missing\n"; }
