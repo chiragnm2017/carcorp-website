@@ -37,6 +37,13 @@ document.addEventListener('DOMContentLoaded', () => {
       return;
     }
 
+    // Verify Cloudflare Turnstile was completed
+    const turnstileToken = form.querySelector('[name="cf-turnstile-response"]');
+    if (!turnstileToken || !turnstileToken.value) {
+      showMessage('Please complete the security check.', 'error');
+      return;
+    }
+
     // Build payload from form fields
     const data = {};
     new FormData(form).forEach((value, key) => {
