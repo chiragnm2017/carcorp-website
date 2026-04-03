@@ -1,18 +1,19 @@
 /**
- * form.js — Contact form submission via Zapier webhook
+ * form.js — Contact form submission via Cloudflare Worker proxy
  *
- * Replace ZAPIER_WEBHOOK_URL with the actual Zapier catch hook URL.
- * The form posts JSON; Zapier receives it and routes to email + Sheets.
+ * Posts to /api/contact (Cloudflare Worker) which verifies Turnstile
+ * server-side and forwards to Zapier. The Zapier webhook URL is a
+ * Worker secret and never appears in client code.
  */
 
-const ZAPIER_WEBHOOK_URL = 'https://hooks.zapier.com/hooks/catch/4694436/unqxddt/';
+const CONTACT_ENDPOINT = '/api/contact';
 
 document.addEventListener('DOMContentLoaded', () => {
   const form = document.getElementById('contact-form');
   if (!form) return;
 
-  const submitBtn  = form.querySelector('.btn[type="submit"]');
-  const msgEl      = form.querySelector('.form-message');
+  const submitBtn = form.querySelector('.btn[type="submit"]');
+  const msgEl     = form.querySelector('.form-message');
 
   form.addEventListener('submit', async (e) => {
     e.preventDefault();
@@ -37,14 +38,14 @@ document.addEventListener('DOMContentLoaded', () => {
       return;
     }
 
-    // Verify Cloudflare Turnstile was completed
+    // Verify Cloudflare Turnstile was completed (client-side check)
     const turnstileToken = form.querySelector('[name="cf-turnstile-response"]');
     if (!turnstileToken || !turnstileToken.value) {
       showMessage('Please complete the security check.', 'error');
       return;
     }
 
-    // Build payload from form fields
+    // Build payload
     const data = {};
     new FormData(form).forEach((value, key) => {
       data[key] = value;
@@ -53,25 +54,29 @@ document.addEventListener('DOMContentLoaded', () => {
     data.page_url     = window.location.href;
 
     // Disable submit while sending
-    submitBtn.disabled = true;
+    submitBtn.disabled    = true;
     submitBtn.textContent = 'Sending…';
 
     try {
-      await fetch(ZAPIER_WEBHOOK_URL, {
-        method: 'POST',
-        mode: 'no-cors',   // Zapier catch hooks don't return CORS headers
+      const response = await fetch(CONTACT_ENDPOINT, {
+        method:  'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(data),
+        body:    JSON.stringify(data),
       });
 
-      // no-cors means we can't read the response status — assume success if no throw
-      showMessage('Thanks! Your enquiry has been received. We\'ll be in touch shortly.', 'success');
-      form.reset();
+      const result = await response.json();
+
+      if (result.ok) {
+        showMessage('Thanks! Your enquiry has been received. We\'ll be in touch shortly.', 'success');
+        form.reset();
+      } else {
+        showMessage(result.error || 'Something went wrong. Please try again or call us directly.', 'error');
+      }
 
     } catch {
       showMessage('Something went wrong. Please try again or call us directly.', 'error');
     } finally {
-      submitBtn.disabled = false;
+      submitBtn.disabled    = false;
       submitBtn.textContent = 'Send Enquiry';
     }
   });
@@ -79,7 +84,7 @@ document.addEventListener('DOMContentLoaded', () => {
   function showMessage(text, type) {
     if (!msgEl) return;
     msgEl.textContent = text;
-    msgEl.className = 'form-message ' + type;
+    msgEl.className   = 'form-message ' + type;
     msgEl.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
   }
 });

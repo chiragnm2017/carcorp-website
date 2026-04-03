@@ -1,0 +1,10 @@
+name            = "carcorp-contact"
+main            = "index.js"
+compatibility_date = "2025-01-01"
+
+# Routes the Worker to handle /api/contact on the main domain.
+# The Zapier webhook URL and Turnstile secret key are set as
+# encrypted secrets via the Cloudflare dashboard — never in this file.
+[[routes]]
+pattern   = "carcorpaust.com.au/api/contact"
+zone_name = "carcorpaust.com.au"
