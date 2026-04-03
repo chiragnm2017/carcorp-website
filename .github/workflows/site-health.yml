@@ -1,14 +1,24 @@
-name: "Site Health: Weekly Check"
+name: "Web Developer: Site Audit"
 
 on:
   schedule:
-    - cron: '0 20 * * 0'   # Sunday 6am AEST
+    - cron: '0 20 * * *'   # 6am AEST (UTC+10). Change to '0 19 * * *' during AEDT (Oct-Apr)
   push:
-    branches: [main]
+    branches: [master]
   workflow_dispatch:
 
+env:
+  STAGING_URL: "https://squid-app-tx95c.ondigitalocean.app"
+  # CarCorp design system colours (from css/variables.css)
+  COLOUR_PAGE_BG:   "#FFFFFF"
+  COLOUR_GREY_SECT: "#F5F5F5"
+  COLOUR_DARK:      "#111111"
+  COLOUR_STATS_BAR: "#595959"
+  COLOUR_ACCENT:    "#E8732A"
+
 jobs:
-  health-check:
+  site-audit:
+    name: "Web Developer: Site Audit"
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -18,106 +28,314 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: HTML structure checks
-        id: health
+      - name: Run site audit
+        id: audit
         run: |
-          ISSUES=0
+          CRITICAL=0
+          HIGH=0
+          MEDIUM=0
+          LOW=0
           FINDINGS=""
 
-          # ── Mobile viewport tag on all HTML pages ─────────────────────────
-          for f in $(find . -name "*.html" -not -path "./.git/*"); do
-            if ! grep -q 'name="viewport"' "$f"; then
-              ISSUES=$((ISSUES+1))
-              FINDINGS="${FINDINGS}\n### Missing viewport meta tag: $f\n"
+          # ══════════════════════════════════════════════════════════════
+          # FUNCTIONAL: PAGE AVAILABILITY
+          # ══════════════════════════════════════════════════════════════
+
+          declare -A PAGES
+          PAGES["/"]="Home"
+          PAGES["/about-us"]="About Us"
+          PAGES["/careers"]="Career Services"
+          PAGES["/service"]="Recruitment Services"
+          PAGES["/temporary-staffing-services"]="Temporary Staffing"
+          PAGES["/job-listings"]="Job Listings"
+          PAGES["/contact"]="Contact"
+          PAGES["/privacy"]="Privacy Policy"
+          PAGES["/disclaimer"]="Disclaimer"
+
+          for path in "${!PAGES[@]}"; do
+            label="${PAGES[$path]}"
+            HTTP=$(curl -s -o /dev/null -w "%{http_code}" \
+              --max-time 15 \
+              "${STAGING_URL}${path}" 2>/dev/null || echo "000")
+            SIZE=$(curl -s --max-time 15 "${STAGING_URL}${path}" 2>/dev/null | wc -c || echo 0)
+
+            if [ "$HTTP" != "200" ]; then
+              HIGH=$((HIGH+1))
+              FINDINGS="${FINDINGS}
+### HIGH: Page unavailable — $label (\`$path\` returned HTTP $HTTP)
+- **Why:** A page returning non-200 means real visitors see an error. Google may deindex the page.
+- **Fix:** Check DigitalOcean App Platform deploy logs. Verify the file exists in the repo at the correct path.
+"
+            elif [ "$SIZE" -lt 500 ]; then
+              HIGH=$((HIGH+1))
+              FINDINGS="${FINDINGS}
+### HIGH: Page response suspiciously small — $label (\`$path\`, ${SIZE} bytes)
+- **Why:** A page this small is likely blank or broken. Could indicate a deploy failure or an empty file.
+- **Fix:** Open the page in a browser to confirm. Check the DO deploy logs.
+"
             fi
           done
 
-          # ── All HTML pages have <title> ───────────────────────────────────
-          for f in $(find . -name "*.html" -not -path "./.git/*"); do
-            if ! grep -q '<title>' "$f"; then
-              ISSUES=$((ISSUES+1))
-              FINDINGS="${FINDINGS}\n### Missing <title> tag: $f\n"
-            fi
-          done
-
-          # ── Images have alt attributes ────────────────────────────────────
-          IMG_NO_ALT=$(grep -rn '<img' --include="*.html" . | grep -v 'alt=' | wc -l)
-          if [ "$IMG_NO_ALT" -gt 0 ]; then
-            ISSUES=$((ISSUES+1))
-            FINDINGS="${FINDINGS}\n### $IMG_NO_ALT image(s) missing alt attribute\n"
+          # ── FUNCTIONAL: 404 page ──────────────────────────────────────
+          HTTP_404=$(curl -s -o /dev/null -w "%{http_code}" \
+            --max-time 15 "${STAGING_URL}/this-page-does-not-exist-xyz123" 2>/dev/null || echo "000")
+          if [ "$HTTP_404" != "404" ]; then
+            MEDIUM=$((MEDIUM+1))
+            FINDINGS="${FINDINGS}
+### MEDIUM: Custom 404 page not returning HTTP 404 status (got $HTTP_404)
+- **Why:** Search engines and browsers expect a 404 status for missing pages. Without it, broken links may be indexed.
+- **Fix:** Ensure 404.html is configured as the error page in DigitalOcean App Platform settings.
+"
           fi
 
-          # ── Internal links resolve ────────────────────────────────────────
+          # ── FUNCTIONAL: Cloudflare Worker endpoint ────────────────────
+          WORKER_HTTP=$(curl -s -o /tmp/worker_resp.txt -w "%{http_code}" \
+            --max-time 15 \
+            -X POST "${STAGING_URL}/api/contact" \
+            -H "Content-Type: application/json" \
+            -d '{"test":true}' 2>/dev/null || echo "000")
+
+          if [ "$WORKER_HTTP" = "000" ]; then
+            HIGH=$((HIGH+1))
+            FINDINGS="${FINDINGS}
+### HIGH: Cloudflare Worker endpoint /api/contact is unreachable
+- **Why:** The contact form posts to /api/contact. If the Worker is unreachable, all form submissions fail silently.
+- **Fix:** Check Cloudflare Workers & Pages > carcorp-contact. Verify the route carcorpaust.com.au/api/contact is active and the Worker is deployed.
+"
+          elif [ "$WORKER_HTTP" = "400" ] || [ "$WORKER_HTTP" = "403" ]; then
+            : # Expected — Worker is up and rejecting the test payload correctly (fail closed)
+          elif [ "$WORKER_HTTP" = "200" ]; then
+            MEDIUM=$((MEDIUM+1))
+            FINDINGS="${FINDINGS}
+### MEDIUM: Cloudflare Worker /api/contact accepted a test payload with empty fields
+- **Why:** The Worker should reject incomplete submissions with 400. A 200 for a test payload may indicate the server-side validation is not working.
+- **Fix:** Review worker/index.js — confirm required field validation and Turnstile check are active.
+"
+          fi
+
+          # ── FUNCTIONAL: data/careers.json ────────────────────────────
+          if [ -f "data/careers.json" ]; then
+            if ! python3 -c "import json,sys; json.load(open('data/careers.json'))" 2>/dev/null; then
+              HIGH=$((HIGH+1))
+              FINDINGS="${FINDINGS}
+### HIGH: data/careers.json is invalid JSON
+- **Why:** The job listings page loads jobs from this file. Invalid JSON causes the entire job listings section to fail with a JS error.
+- **Fix:** Validate the file at jsonlint.com and fix any syntax errors (missing commas, unclosed brackets).
+"
+            fi
+          else
+            MEDIUM=$((MEDIUM+1))
+            FINDINGS="${FINDINGS}
+### MEDIUM: data/careers.json not found
+- **Why:** The job listings page depends on this file. If it is missing, the page will show no jobs or an error.
+- **Fix:** Restore data/careers.json with the correct structure: [{\"title\":\"...\",\"company\":\"Drive Chat\",\"type\":\"Permanent\",\"location\":\"Melbourne VIC\",\"description\":\"\"}]
+"
+          fi
+
+          # ══════════════════════════════════════════════════════════════
+          # HTML STRUCTURE
+          # ══════════════════════════════════════════════════════════════
+
+          # ── Viewport meta tag ─────────────────────────────────────────
           for f in $(find . -name "*.html" -not -path "./.git/*"); do
-            LINKS=$(grep -o 'href="[^"]*\.html[^"]*"' "$f" | grep -v "http" | sed 's/href="//;s/"//' | sed 's/#.*//' | head -20)
+            if ! grep -q 'name="viewport"' "$f"; then
+              HIGH=$((HIGH+1))
+              FINDINGS="${FINDINGS}
+### HIGH: Missing viewport meta tag in \`$f\`
+- **Why:** Without a viewport tag, mobile browsers render the page at desktop width, making it unreadable on phones. Google uses mobile-first indexing.
+- **Fix:** Add \`<meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">\` inside <head>.
+"
+            fi
+          done
+
+          # ── Title tag ─────────────────────────────────────────────────
+          for f in $(find . -name "*.html" -not -path "./.git/*"); do
+            if ! grep -q '<title>' "$f"; then
+              HIGH=$((HIGH+1))
+              FINDINGS="${FINDINGS}
+### HIGH: Missing <title> tag in \`$f\`
+- **Why:** The title tag is the primary SEO signal and appears as the clickable text in Google search results.
+- **Fix:** Add a descriptive <title> tag following the pattern: Page Name | Carcorp Australia
+"
+            fi
+          done
+
+          # ── Images with alt attributes ────────────────────────────────
+          IMG_NO_ALT=$(grep -rn '<img' --include="*.html" . | grep -v 'alt=' | wc -l)
+          if [ "$IMG_NO_ALT" -gt 0 ]; then
+            MEDIUM=$((MEDIUM+1))
+            FINDINGS="${FINDINGS}
+### MEDIUM: $IMG_NO_ALT image(s) missing alt attribute
+- **Why:** Alt text is required for accessibility (WCAG 2.1) and provides SEO context for images. Screen readers skip images without alt.
+- **Fix:** Add alt="" to decorative images. Add descriptive alt text to content images.
+"
+          fi
+
+          # ── Internal links resolve ────────────────────────────────────
+          for f in $(find . -name "*.html" -not -path "./.git/*"); do
+            LINKS=$(grep -o 'href="[^"]*\.html[^"]*"' "$f" 2>/dev/null | grep -v "http" | sed 's/href="//;s/"//' | sed 's/#.*//' | head -20)
             for link in $LINKS; do
               link_path=$(echo "$link" | sed 's|^/||')
               if [ -n "$link_path" ] && [ ! -f "$link_path" ]; then
-                ISSUES=$((ISSUES+1))
-                FINDINGS="${FINDINGS}\n### Broken internal link: $link in $f\n"
+                MEDIUM=$((MEDIUM+1))
+                FINDINGS="${FINDINGS}
+### MEDIUM: Broken internal link \`$link\` in \`$f\`
+- **Why:** Broken links create a poor user experience and are penalised by Google (crawl errors).
+- **Fix:** Update the href to point to the correct file path, or remove the link if the page no longer exists.
+"
               fi
             done
           done
 
-          # ── data/careers.json is valid JSON ──────────────────────────────
-          if [ -f "data/careers.json" ]; then
-            if ! python3 -c "import json,sys; json.load(open('data/careers.json'))" 2>/dev/null; then
-              ISSUES=$((ISSUES+1))
-              FINDINGS="${FINDINGS}\n### data/careers.json is invalid JSON\n"
-            fi
-          fi
-
-          # ── No placeholder {{TOKENS}} left in HTML ───────────────────────
+          # ── Unreplaced placeholder tokens ─────────────────────────────
           TOKEN_COUNT=$(grep -rn "{{" --include="*.html" . | grep -v "<!--\|gtm.js" | wc -l)
           if [ "$TOKEN_COUNT" -gt 0 ]; then
-            ISSUES=$((ISSUES+1))
-            FINDINGS="${FINDINGS}\n### $TOKEN_COUNT unreplaced {{TOKEN}} placeholder(s) found in HTML\n\`\`\`\n$(grep -rn "{{" --include="*.html" . | grep -v "<!--\|gtm.js" | head -10)\n\`\`\`\n"
+            HIGH=$((HIGH+1))
+            FINDINGS="${FINDINGS}
+### HIGH: $TOKEN_COUNT unreplaced {{TOKEN}} placeholder(s) found in HTML
+- **Why:** Template tokens left in production HTML are visible to visitors and indicate an incomplete deploy.
+- **Fix:** Replace or remove all {{ }} placeholders.
+\`\`\`
+$(grep -rn "{{" --include="*.html" . | grep -v "<!--\|gtm.js" | head -5)
+\`\`\`
+"
           fi
 
-          # ── Footer copyright year is current ─────────────────────────────
-          CURRENT_YEAR=$(date +%Y)
-          if grep -rn "footer-year" --include="*.html" . | grep -q "textContent"; then
-            : # Dynamic year — OK
+          # ══════════════════════════════════════════════════════════════
+          # DESIGN SYSTEM
+          # ══════════════════════════════════════════════════════════════
+
+          # ── Orange accent colour present ──────────────────────────────
+          if ! grep -rq "#E8732A\|e8732a" --include="*.css" .; then
+            MEDIUM=$((MEDIUM+1))
+            FINDINGS="${FINDINGS}
+### MEDIUM: CarCorp orange accent colour (#E8732A) not found in CSS
+- **Why:** The orange accent is the primary brand colour. Its absence from CSS suggests the design system variables file may have been modified or broken.
+- **Fix:** Check css/variables.css — confirm --color-accent: #E8732A is present.
+"
           fi
 
-          echo "issues=$ISSUES" >> $GITHUB_OUTPUT
-          printf "%b" "$FINDINGS" > /tmp/health-findings.txt
+          # ── Dark nav colour present ───────────────────────────────────
+          if ! grep -rq "#111111\|111111" --include="*.css" .; then
+            MEDIUM=$((MEDIUM+1))
+            FINDINGS="${FINDINGS}
+### MEDIUM: CarCorp dark nav colour (#111111) not found in CSS
+- **Why:** #111111 is used for the nav, hero, and footer backgrounds. Its absence may indicate a design system regression.
+- **Fix:** Check css/variables.css — confirm --color-dark: #111111 is present.
+"
+          fi
 
-          if [ $ISSUES -gt 0 ]; then
+          # ── CSS cache version consistency ─────────────────────────────
+          CSS_VERSIONS=$(grep -roh '?v=[0-9]*' --include="*.html" . | sort -u | wc -l)
+          if [ "$CSS_VERSIONS" -gt 1 ]; then
+            MEDIUM=$((MEDIUM+1))
+            FINDINGS="${FINDINGS}
+### MEDIUM: Inconsistent CSS cache-busting version across HTML files
+- **Why:** Inconsistent ?v= values mean some pages load stale CSS after a deploy, causing visual inconsistencies.
+- **Fix:** Run a find-and-replace to set the same ?v=N across all HTML files. Current versions in use: $(grep -roh '?v=[0-9]*' --include="*.html" . | sort -u | tr '\n' ' ')
+"
+          fi
+
+          # ══════════════════════════════════════════════════════════════
+          # PERFORMANCE
+          # ══════════════════════════════════════════════════════════════
+
+          # ── HTML file size ────────────────────────────────────────────
+          for f in $(find . -name "*.html" -not -path "./.git/*"); do
+            SIZE=$(wc -c < "$f")
+            if [ "$SIZE" -gt 204800 ]; then
+              LOW=$((LOW+1))
+              FINDINGS="${FINDINGS}
+### LOW: HTML file size exceeds 200KB — \`$f\` ($(($SIZE/1024))KB)
+- **Why:** Large HTML files slow initial page load. Above 200KB usually indicates embedded scripts, inline SVGs, or base64 images that should be externalised.
+- **Fix:** Move large inline content to external files. Compress SVGs. Avoid base64 images.
+"
+            fi
+          done
+
+          # ── sitemap.xml and robots.txt ────────────────────────────────
+          [ ! -f "sitemap.xml" ] && { LOW=$((LOW+1)); FINDINGS="${FINDINGS}
+### LOW: sitemap.xml missing
+- **Why:** sitemap.xml helps search engines discover all pages faster. Without it, new pages may not be indexed for weeks.
+- **Fix:** Generate and commit a sitemap.xml listing all public page URLs.
+"; }
+
+          [ ! -f "robots.txt" ] && { LOW=$((LOW+1)); FINDINGS="${FINDINGS}
+### LOW: robots.txt missing
+- **Why:** Without robots.txt, crawlers have no guidance on what to skip (e.g. /worker/ or draft pages).
+- **Fix:** Create robots.txt with Sitemap: reference and any Disallow rules needed.
+"; }
+
+          # ══════════════════════════════════════════════════════════════
+          # TOTALS
+          # ══════════════════════════════════════════════════════════════
+          TOTAL=$((CRITICAL+HIGH+MEDIUM+LOW))
+
+          echo "critical=$CRITICAL" >> $GITHUB_OUTPUT
+          echo "high=$HIGH"         >> $GITHUB_OUTPUT
+          echo "medium=$MEDIUM"     >> $GITHUB_OUTPUT
+          echo "low=$LOW"           >> $GITHUB_OUTPUT
+          echo "total=$TOTAL"       >> $GITHUB_OUTPUT
+          printf "%b" "$FINDINGS"   > /tmp/health-findings.txt
+
+          if [ $TOTAL -gt 0 ]; then
             echo "has_issues=true" >> $GITHUB_OUTPUT
           else
             echo "has_issues=false" >> $GITHUB_OUTPUT
           fi
 
-      - name: All clear
-        if: steps.health.outputs.has_issues == 'false'
-        run: echo "Site Health — All checks passed."
+      - name: All clear — send Zapier notification
+        if: steps.audit.outputs.has_issues == 'false'
+        run: |
+          SCAN_DATE=$(TZ=Australia/Melbourne date +%Y-%m-%d)
+          curl -s -X POST "${{ secrets.ZAPIER_NOTIFY_URL }}" \
+            -H "Content-Type: application/json" \
+            -d "{\"scan_type\":\"SITE_HEALTH\",\"scan_date\":\"$SCAN_DATE\",\"status\":\"ALL_CLEAR\",\"total_count\":0,\"auto_fixed_count\":0,\"needs_review_count\":0,\"github_issue_url\":\"\",\"run_url\":\"https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}\",\"findings_brief\":\"All site health checks passed.\",\"email_subject\":\"carcorpaust.com.au | Sentry | Site Health | All clear ($SCAN_DATE)\"}" \
+            --max-time 15 || true
 
       - name: Create GitHub issue for findings
-        if: steps.health.outputs.has_issues == 'true'
+        if: steps.audit.outputs.has_issues == 'true'
         uses: actions/github-script@v7
         with:
+          github-token: ${{ secrets.PAT_TOKEN }}
           script: |
-            const fs = require('fs');
-            const findings = fs.readFileSync('/tmp/health-findings.txt', 'utf8');
-            const count = '${{ steps.health.outputs.issues }}';
-            const date  = new Date().toISOString().split('T')[0];
+            const fs   = require('fs');
+            const raw  = fs.readFileSync('/tmp/health-findings.txt', 'utf8');
+            const date = new Date().toISOString().split('T')[0];
 
-            const body = `## Site Health Report — ${date}
+            const critical = Number('${{ steps.audit.outputs.critical }}');
+            const high     = Number('${{ steps.audit.outputs.high }}');
+            const medium   = Number('${{ steps.audit.outputs.medium }}');
+            const low      = Number('${{ steps.audit.outputs.low }}');
+            const total    = Number('${{ steps.audit.outputs.total }}');
 
-            **${count} issue(s) found.**
+            const checklist = raw
+              .split(/\n(?=### )/)
+              .filter(Boolean)
+              .map(block => `- [ ] ${block.trim()}`)
+              .join('\n\n');
+
+            const body = `## Site Health Audit — ${date}
+
+            | Severity | Count |
+            |---|---|
+            | Critical | ${critical} |
+            | High | ${high} |
+            | Medium | ${medium} |
+            | Low | ${low} |
+            | **Total** | **${total}** |
 
             ---
 
-            ${findings}
+            ${checklist}
 
             ---
-            *Generated by Site Health workflow.*`;
+            *Generated by Web Developer: Site Audit. Auto Fix will attempt remediation on safe findings.*`;
 
             await github.rest.issues.create({
               owner: context.repo.owner,
-              repo: context.repo.repo,
-              title: `[Site Health] ${count} issue(s) found — ${date}`,
-              body: body,
-              labels: ['site-health']
+              repo:  context.repo.repo,
+              title: `[Site Health] ${total} finding(s) — ${date}`,
+              body:  body,
+              labels: ['site-health'],
             });

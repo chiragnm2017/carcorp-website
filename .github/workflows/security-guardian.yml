@@ -1,14 +1,25 @@
-name: "Security Guardian: Daily Scan"
+name: "Web Developer: Security Audit"
 
 on:
   schedule:
-    - cron: '0 20 * * *'   # 6am AEST daily (UTC+10). Change to '0 19 * * *' during AEDT (Oct–Apr)
+    - cron: '0 20 * * *'   # 6am AEST (UTC+10). Change to '0 19 * * *' during AEDT (Oct-Apr)
   push:
-    branches: [main]
+    branches: [master]
   workflow_dispatch:
+
+env:
+  # Domains approved to appear in <script src=""> tags
+  APPROVED_SCRIPT_DOMAINS: "fonts.googleapis.com challenges.cloudflare.com www.googletagmanager.com images.pexels.com"
+  # Domains approved to appear in form action= or fetch() calls in client JS
+  APPROVED_FETCH_DOMAINS: "challenges.cloudflare.com /api/contact"
+  # All known external domains (for new-domain detection)
+  KNOWN_DOMAINS: "fonts.googleapis.com fonts.gstatic.com challenges.cloudflare.com www.googletagmanager.com images.pexels.com carcorpaust.com.au schema.org"
+  # Strings that look like secrets but are intentional and approved
+  SECRET_WHITELIST: "0x4AAAAAACzGLxJ5iVvOz34_ GTM-KJ8C8QLH"
 
 jobs:
   security-scan:
+    name: "Web Developer: Security Audit"
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -27,119 +38,301 @@ jobs:
           LOW=0
           FINDINGS=""
 
-          # ── CRITICAL: Hardcoded secrets ──────────────────────────────────
-          SECRET_PATTERNS="password\s*=\s*['\"][^'\"]{6,}|api[_-]?key\s*=\s*['\"][^'\"]{8,}|secret\s*=\s*['\"][^'\"]{8,}|private[_-]?key|BEGIN RSA|BEGIN OPENSSH"
-          if grep -rEi "$SECRET_PATTERNS" --include="*.html" --include="*.js" --include="*.css" . 2>/dev/null | grep -v "{{" | grep -v "YOUR_" | grep -q .; then
-            CRITICAL=$((CRITICAL+1))
-            FINDINGS="${FINDINGS}\n### CRITICAL: Possible hardcoded secret detected\nCheck output of: \`grep -rEi 'password|api_key|secret' --include='*.html' --include='*.js' .\`\n"
-          fi
+          # ══════════════════════════════════════════════════════════════
+          # CRITICAL CHECKS
+          # ══════════════════════════════════════════════════════════════
 
-          # ── CRITICAL: Unsafe JavaScript patterns ─────────────────────────
-          if grep -rn "eval(" --include="*.js" . | grep -v "//" | grep -v "{{" | grep -q .; then
-            CRITICAL=$((CRITICAL+1))
-            FINDINGS="${FINDINGS}\n### CRITICAL: eval() usage found in JS\n\`\`\`\n$(grep -rn "eval(" --include="*.js" . | grep -v "//")\n\`\`\`\n"
-          fi
-          if grep -rn "document.write(" --include="*.js" --include="*.html" . | grep -q .; then
-            CRITICAL=$((CRITICAL+1))
-            FINDINGS="${FINDINGS}\n### CRITICAL: document.write() found\n\`\`\`\n$(grep -rn "document.write(" --include="*.js" --include="*.html" .)\n\`\`\`\n"
-          fi
-
-          # ── HIGH: Inline event handlers ──────────────────────────────────
-          INLINE_EVENTS=$(grep -rn "on(click|error|load|submit|change)=" --include="*.html" . 2>/dev/null | grep -v "{{" | wc -l)
-          if [ "$INLINE_EVENTS" -gt 0 ]; then
-            HIGH=$((HIGH+1))
-            FINDINGS="${FINDINGS}\n### HIGH: $INLINE_EVENTS inline event handler(s) found\nConsider moving to JS event listeners.\n"
-          fi
-
-          # ── HIGH: Mixed content ──────────────────────────────────────────
-          if grep -rn 'src="http://' --include="*.html" . | grep -q .; then
-            HIGH=$((HIGH+1))
-            FINDINGS="${FINDINGS}\n### HIGH: Mixed content (http:// src) found\n\`\`\`\n$(grep -rn 'src="http://' --include="*.html" .)\n\`\`\`\n"
-          fi
-
-          # ── MEDIUM: Missing meta tags ─────────────────────────────────────
-          for f in $(find . -name "*.html" -not -path "./.git/*" -not -name "404.html"); do
-            if ! grep -q '<meta name="description"' "$f"; then
-              MEDIUM=$((MEDIUM+1))
-              FINDINGS="${FINDINGS}\n### MEDIUM: Missing meta description in $f\n"
-            fi
-            if ! grep -q '<html lang=' "$f"; then
-              MEDIUM=$((MEDIUM+1))
-              FINDINGS="${FINDINGS}\n### MEDIUM: Missing html lang attribute in $f\n"
-            fi
-          done
-
-          # ── LOW: Hardcoded years ─────────────────────────────────────────
-          PREV_YEAR=$(date -d "last year" +%Y 2>/dev/null || date -v-1y +%Y)
-          if grep -rn "$PREV_YEAR" --include="*.html" . | grep -v "footer-year\|<!--\|// " | grep -q .; then
-            LOW=$((LOW+1))
-            FINDINGS="${FINDINGS}\n### LOW: Hardcoded year $PREV_YEAR found (should use dynamic JS)\n"
-          fi
-
-          # ── LOW: TODO/FIXME comments ─────────────────────────────────────
-          TODO_COUNT=$(grep -rn "TODO\|FIXME\|HACK\|XXX" --include="*.html" --include="*.js" --include="*.css" . | wc -l)
-          if [ "$TODO_COUNT" -gt 0 ]; then
-            LOW=$((LOW+1))
-            FINDINGS="${FINDINGS}\n### LOW: $TODO_COUNT TODO/FIXME comment(s) remaining\n"
-          fi
-
-          # ── CRITICAL: Webhook URL exposed in public client-side JS ─────────
+          # ── CRITICAL: Webhook URL exposed in public client-side JS ────
           if grep -rn "hooks\.zapier\.com\|hooks\.make\.com\|webhook\.site\|discord\.com/api/webhooks" \
                --include="*.js" --include="*.html" . 2>/dev/null \
              | grep -v "worker/" | grep -q .; then
             CRITICAL=$((CRITICAL+1))
-            FINDINGS="${FINDINGS}\n### CRITICAL: Webhook URL exposed in public client-side code\nThe Zapier/Make webhook URL must only exist as a Worker secret — never in JS or HTML.\n\`\`\`\n$(grep -rn "hooks\.zapier\.com\|hooks\.make\.com" --include="*.js" --include="*.html" . | grep -v "worker/" | head -5)\n\`\`\`\n"
+            SNIPPET=$(grep -rn "hooks\.zapier\.com\|hooks\.make\.com" --include="*.js" --include="*.html" . | grep -v "worker/" | head -3)
+            FINDINGS="${FINDINGS}
+### CRITICAL: Webhook URL exposed in public client-side code
+- **Why:** The Zapier/Make webhook URL is a permanent credential. Once visible in public JS or HTML it is scraped by bots and used to POST spam directly to Zapier, bypassing all form validation and Turnstile CAPTCHA. This was the root cause of the blank form submission attack on 3 April 2026.
+- **Fix:** Remove the URL from client code. It must only exist as a secret in the Cloudflare Worker (Workers & Pages > carcorp-contact > Settings > Variables and Secrets > ZAPIER_WEBHOOK_URL). The form should POST to \`/api/contact\` only.
+\`\`\`
+$SNIPPET
+\`\`\`
+"
           fi
 
-          # ── CRITICAL: Form posting directly to external webhook ───────────
+          # ── CRITICAL: form.js posting directly to external webhook ────
           if grep -rn "fetch.*hooks\.\|fetch.*webhook" --include="*.js" . 2>/dev/null \
              | grep -v "worker/" | grep -q .; then
             CRITICAL=$((CRITICAL+1))
-            FINDINGS="${FINDINGS}\n### CRITICAL: Direct webhook fetch in client-side JS\nAll form submissions must route through the /api/contact Worker proxy, not directly to Zapier.\n\`\`\`\n$(grep -rn "fetch.*hooks\." --include="*.js" . | grep -v "worker/" | head -5)\n\`\`\`\n"
+            SNIPPET=$(grep -rn "fetch.*hooks\." --include="*.js" . | grep -v "worker/" | head -3)
+            FINDINGS="${FINDINGS}
+### CRITICAL: Client-side JS is fetching directly to an external webhook
+- **Why:** All form submissions must route through the Cloudflare Worker at \`/api/contact\`. Posting directly to Zapier exposes the webhook URL and bypasses server-side Turnstile verification and field validation.
+- **Fix:** Change the fetch target in form.js to \`/api/contact\`. Ensure ZAPIER_WEBHOOK_URL is only in the Worker secret.
+\`\`\`
+$SNIPPET
+\`\`\`
+"
           fi
 
-          # ── HIGH: form.js missing Turnstile token check ───────────────────
+          # ── CRITICAL: Hardcoded secrets ───────────────────────────────
+          WHITELIST_PATTERN=$(echo "$SECRET_WHITELIST" | tr ' ' '|')
+          SECRET_HITS=$(grep -rEi \
+            "password\s*[=:]\s*['\"][^'\"]{6,}|api[_-]?key\s*[=:]\s*['\"][^'\"]{8,}|secret\s*[=:]\s*['\"][^'\"]{8,}|private[_-]?key|BEGIN RSA|BEGIN OPENSSH|Bearer [A-Za-z0-9]{20,}" \
+            --include="*.html" --include="*.js" --include="*.json" . 2>/dev/null \
+            | grep -v "worker/" \
+            | grep -vE "$WHITELIST_PATTERN" \
+            | grep -v "{{" | grep -v "YOUR_" | grep -v "PLACEHOLDER" || true)
+          if [ -n "$SECRET_HITS" ]; then
+            CRITICAL=$((CRITICAL+1))
+            FINDINGS="${FINDINGS}
+### CRITICAL: Possible hardcoded secret or credential detected
+- **Why:** Credentials in public code are immediately scraped by bots. Even after removal the exposure window may have been enough for abuse.
+- **Fix:** Rotate the credential immediately. Store it as a Cloudflare Worker secret or GitHub Actions secret. Remove from all files and git history if needed (git filter-repo).
+\`\`\`
+$(echo "$SECRET_HITS" | head -5)
+\`\`\`
+"
+          fi
+
+          # ── CRITICAL: Dangerous JS patterns ──────────────────────────
+          if grep -rn "eval(" --include="*.js" . | grep -v "worker/" | grep -v "//" | grep -q .; then
+            CRITICAL=$((CRITICAL+1))
+            FINDINGS="${FINDINGS}
+### CRITICAL: eval() usage found in client-side JS
+- **Why:** eval() executes arbitrary strings as code. It is a primary XSS vector and is banned by most Content-Security-Policies.
+- **Fix:** Rewrite the logic without eval(). Use JSON.parse() for data, or a lookup table for dynamic dispatch.
+\`\`\`
+$(grep -rn "eval(" --include="*.js" . | grep -v "worker/" | grep -v "//" | head -5)
+\`\`\`
+"
+          fi
+
+          if grep -rn "new Function(" --include="*.js" . | grep -v "worker/" | grep -v "//" | grep -q .; then
+            CRITICAL=$((CRITICAL+1))
+            FINDINGS="${FINDINGS}
+### CRITICAL: new Function() usage found in client-side JS
+- **Why:** Equivalent to eval() — executes arbitrary code at runtime. Banned by CSP.
+- **Fix:** Replace with a static function or lookup table.
+"
+          fi
+
+          if grep -rn "document\.write(" --include="*.js" --include="*.html" . | grep -v "worker/" | grep -q .; then
+            CRITICAL=$((CRITICAL+1))
+            FINDINGS="${FINDINGS}
+### CRITICAL: document.write() found
+- **Why:** document.write() can overwrite the entire page and is a classic XSS injection point.
+- **Fix:** Use DOM manipulation methods (createElement, appendChild, innerHTML with sanitised input) instead.
+\`\`\`
+$(grep -rn "document\.write(" --include="*.js" --include="*.html" . | grep -v "worker/" | head -5)
+\`\`\`
+"
+          fi
+
+          # ── CRITICAL: Unapproved script domains ───────────────────────
+          ALL_SCRIPT_SRCS=$(grep -roh 'src="https://[^"/]*' --include="*.html" . | sed 's/src="https:\/\///' || true)
+          for domain in $ALL_SCRIPT_SRCS; do
+            domain_clean=$(echo "$domain" | cut -d'/' -f1)
+            if ! echo "$APPROVED_SCRIPT_DOMAINS" | grep -qw "$domain_clean"; then
+              CRITICAL=$((CRITICAL+1))
+              FINDINGS="${FINDINGS}
+### CRITICAL: Unapproved script domain: \`$domain_clean\`
+- **Why:** Scripts from unknown domains can be compromised to inject malicious code. Every external script domain must be explicitly approved.
+- **Fix:** If this domain is intentional, add it to APPROVED_SCRIPT_DOMAINS in this workflow. If not, remove the script tag.
+"
+            fi
+          done
+
+          # ══════════════════════════════════════════════════════════════
+          # HIGH CHECKS
+          # ══════════════════════════════════════════════════════════════
+
+          # ── HIGH: form.js missing Turnstile token check ───────────────
           if [ -f "js/form.js" ]; then
             if ! grep -q "cf-turnstile-response" "js/form.js"; then
               HIGH=$((HIGH+1))
-              FINDINGS="${FINDINGS}\n### HIGH: form.js does not verify Turnstile token — CAPTCHA is bypassable\nAdd check for [name=\"cf-turnstile-response\"] before submission.\n"
+              FINDINGS="${FINDINGS}
+### HIGH: form.js does not verify Turnstile token before submission
+- **Why:** Without this check, the form can be submitted in a browser without completing the CAPTCHA — just by removing the Turnstile widget from the DOM via DevTools.
+- **Fix:** Add before the fetch call: \`const t = form.querySelector('[name=\"cf-turnstile-response\"]'); if (!t || !t.value) { showMessage('Please complete the security check.', 'error'); return; }\`
+"
             fi
           fi
 
-          # ── HIGH: form.js not routing through Worker proxy ────────────────
+          # ── HIGH: form.js not routing through Worker proxy ────────────
           if [ -f "js/form.js" ]; then
             if ! grep -q "/api/contact" "js/form.js"; then
               HIGH=$((HIGH+1))
-              FINDINGS="${FINDINGS}\n### HIGH: form.js is not routing through /api/contact Worker proxy\nDirect webhook posting exposes the Zapier URL and bypasses server-side validation.\n"
+              FINDINGS="${FINDINGS}
+### HIGH: form.js is not routing through /api/contact Worker proxy
+- **Why:** Posting directly to Zapier exposes the webhook URL in public code and bypasses server-side Turnstile verification. The Worker at /api/contact must be the only point of entry.
+- **Fix:** Set CONTACT_ENDPOINT = '/api/contact' in form.js and remove any direct Zapier fetch calls.
+"
             fi
           fi
 
-          # ── HIGH: no-cors fetch mode in public JS ─────────────────────────
-          if grep -rn "no-cors" --include="*.js" . 2>/dev/null | grep -v "worker/" | grep -q .; then
+          # ── HIGH: no-cors fetch in client-side JS ─────────────────────
+          if grep -rn "no-cors" --include="*.js" . | grep -v "worker/" | grep -q .; then
             HIGH=$((HIGH+1))
-            FINDINGS="${FINDINGS}\n### HIGH: no-cors fetch mode in client-side JS — responses cannot be verified\nUse a Worker proxy instead so real HTTP status codes are readable.\n\`\`\`\n$(grep -rn "no-cors" --include="*.js" . | grep -v "worker/" | head -5)\n\`\`\`\n"
+            FINDINGS="${FINDINGS}
+### HIGH: no-cors fetch mode in client-side JS
+- **Why:** mode: 'no-cors' means the response is opaque — the code cannot read the status code and always assumes success. Failed submissions appear to succeed. This was present in the original form.js before the Worker proxy was introduced.
+- **Fix:** Remove no-cors and use a proper endpoint (the Worker at /api/contact) that returns readable JSON responses.
+\`\`\`
+$(grep -rn "no-cors" --include="*.js" . | grep -v "worker/" | head -3)
+\`\`\`
+"
           fi
 
-          # ── HIGH: External scripts missing SRI integrity attribute ─────────
+          # ── HIGH: Inline event handlers ───────────────────────────────
+          INLINE_EVENTS=$(grep -rEn "on(click|error|load|submit|change|focus|blur)=" --include="*.html" . 2>/dev/null | grep -v "<!--" | grep -v "{{" | wc -l)
+          if [ "$INLINE_EVENTS" -gt 0 ]; then
+            HIGH=$((HIGH+1))
+            FINDINGS="${FINDINGS}
+### HIGH: $INLINE_EVENTS inline event handler(s) found in HTML
+- **Why:** Inline handlers (onclick=, onsubmit=, etc.) are incompatible with Content-Security-Policy and create XSS risk if any user-controlled data reaches them.
+- **Fix:** Move all event handling to JS files using addEventListener().
+"
+          fi
+
+          # ── HIGH: External scripts without SRI integrity attribute ─────
           SRI_MISSING=$(grep -rn '<script src="https://' --include="*.html" . | grep -v 'integrity=' | wc -l)
           if [ "$SRI_MISSING" -gt 0 ]; then
             HIGH=$((HIGH+1))
-            FINDINGS="${FINDINGS}\n### HIGH: $SRI_MISSING external <script> tag(s) loaded without SRI integrity attribute\nA compromised CDN can inject malicious code. Add integrity= and crossorigin= attributes.\n"
+            FINDINGS="${FINDINGS}
+### HIGH: $SRI_MISSING external <script> tag(s) loaded without SRI integrity attribute
+- **Why:** If the CDN is compromised, the script is silently replaced with malicious code. SRI ensures the browser rejects any script that does not match the expected hash.
+- **Fix:** Generate integrity hashes at srihash.org and add integrity= and crossorigin=anonymous to each <script> tag.
+"
           fi
 
-          # ── MEDIUM: novalidate form without JS validation ─────────────────
+          # ── HIGH: Mixed content (http:// resources) ───────────────────
+          if grep -rn 'src="http://' --include="*.html" . | grep -q .; then
+            HIGH=$((HIGH+1))
+            FINDINGS="${FINDINGS}
+### HIGH: Mixed content detected — http:// resource on an https:// page
+- **Why:** Browsers block or warn on mixed content. An http:// script can be intercepted and replaced via MITM.
+- **Fix:** Change all resource URLs to https://.
+\`\`\`
+$(grep -rn 'src="http://' --include="*.html" . | head -5)
+\`\`\`
+"
+          fi
+
+          # ── HIGH: Unsafe innerHTML with variable content ───────────────
+          INNERHTML_UNSAFE=$(grep -rn "innerHTML\s*=" --include="*.js" . | grep -v "worker/" | grep -v "''" | grep -v '""' | grep -v "//")
+          if echo "$INNERHTML_UNSAFE" | grep -v "^$" | grep -q "innerHTML.*\$\|innerHTML.*+\|innerHTML.*template"; then
+            HIGH=$((HIGH+1))
+            FINDINGS="${FINDINGS}
+### HIGH: Unsafe innerHTML assignment with dynamic content
+- **Why:** Assigning unsanitised variable content to innerHTML enables XSS. An attacker who controls the data source can inject script tags.
+- **Fix:** Use textContent for plain text. If HTML is required, sanitise with DOMPurify or escape all user-controlled values before insertion.
+\`\`\`
+$(echo "$INNERHTML_UNSAFE" | grep "innerHTML.*\$\|innerHTML.*+" | head -5)
+\`\`\`
+"
+          fi
+
+          # ══════════════════════════════════════════════════════════════
+          # MEDIUM CHECKS
+          # ══════════════════════════════════════════════════════════════
+
+          # ── MEDIUM: novalidate form without JS validation ─────────────
           NOVALIDATE_COUNT=$(grep -rn "novalidate" --include="*.html" . | wc -l)
           JS_VALIDATION=$(grep -rn "querySelectorAll.*required\|checkValidity\|reportValidity" --include="*.js" . | wc -l)
           if [ "$NOVALIDATE_COUNT" -gt 0 ] && [ "$JS_VALIDATION" -eq 0 ]; then
             MEDIUM=$((MEDIUM+1))
-            FINDINGS="${FINDINGS}\n### MEDIUM: Form uses novalidate but no JS validation found\nnovalidate disables browser validation — JS validation must compensate.\n"
+            FINDINGS="${FINDINGS}
+### MEDIUM: Form uses novalidate but no JS validation found
+- **Why:** novalidate disables all browser HTML5 validation. Without a JS replacement, users can submit empty required fields.
+- **Fix:** Ensure form.js validates all [required] fields before allowing submission.
+"
           fi
 
-          # ── robots.txt and sitemap present ───────────────────────────────
-          [ ! -f "robots.txt" ]  && { MEDIUM=$((MEDIUM+1)); FINDINGS="${FINDINGS}\n### MEDIUM: robots.txt missing\n"; }
-          [ ! -f "sitemap.xml" ] && { MEDIUM=$((MEDIUM+1)); FINDINGS="${FINDINGS}\n### MEDIUM: sitemap.xml missing\n"; }
-          [ ! -f "llms.txt" ]    && { LOW=$((LOW+1));    FINDINGS="${FINDINGS}\n### LOW: llms.txt missing\n"; }
+          # ── MEDIUM: Missing meta description ─────────────────────────
+          for f in $(find . -name "*.html" -not -path "./.git/*" -not -name "404.html"); do
+            if ! grep -q '<meta name="description"' "$f"; then
+              MEDIUM=$((MEDIUM+1))
+              FINDINGS="${FINDINGS}
+### MEDIUM: Missing meta description in \`$f\`
+- **Why:** Meta descriptions appear in Google search results. Missing descriptions reduce click-through rates and hurt SEO.
+- **Fix:** Add \`<meta name=\"description\" content=\"...\">\` in the <head> section.
+"
+            fi
+          done
 
+          # ── MEDIUM: Missing html lang attribute ───────────────────────
+          for f in $(find . -name "*.html" -not -path "./.git/*"); do
+            if ! grep -q '<html lang=' "$f"; then
+              MEDIUM=$((MEDIUM+1))
+              FINDINGS="${FINDINGS}
+### MEDIUM: Missing html lang attribute in \`$f\`
+- **Why:** Screen readers use the lang attribute to select the correct language voice. Required for WCAG accessibility compliance.
+- **Fix:** Change <html> to <html lang=\"en-AU\">.
+"
+            fi
+          done
+
+          # ── MEDIUM: New unrecognised external domains ─────────────────
+          ALL_EXTERNAL=$(grep -roh 'https://[^/"]*' --include="*.html" --include="*.js" . \
+            | grep -v "worker/" | sed 's|https://||' | cut -d'/' -f1 | sort -u || true)
+          for domain in $ALL_EXTERNAL; do
+            if ! echo "$KNOWN_DOMAINS" | grep -qw "$domain" && [ -n "$domain" ]; then
+              MEDIUM=$((MEDIUM+1))
+              FINDINGS="${FINDINGS}
+### MEDIUM: Unrecognised external domain detected: \`$domain\`
+- **Why:** New external domains in code may indicate a supply-chain addition, a mistake, or a compromised dependency.
+- **Fix:** If intentional, add \`$domain\` to KNOWN_DOMAINS in this workflow. If unexpected, investigate immediately.
+"
+            fi
+          done
+
+          # ── MEDIUM: robots.txt and sitemap.xml ───────────────────────
+          [ ! -f "robots.txt" ]  && { MEDIUM=$((MEDIUM+1)); FINDINGS="${FINDINGS}
+### MEDIUM: robots.txt missing
+- **Why:** Without robots.txt, all crawlers including malicious scrapers have no guidance on what to index.
+- **Fix:** Create robots.txt with at minimum: \`User-agent: *\` / \`Disallow:\` and a Sitemap: reference.
+"; }
+          [ ! -f "sitemap.xml" ] && { MEDIUM=$((MEDIUM+1)); FINDINGS="${FINDINGS}
+### MEDIUM: sitemap.xml missing
+- **Why:** Search engines use sitemap.xml to discover pages. Without it, new pages may take months to be indexed.
+- **Fix:** Generate a sitemap.xml listing all public pages and reference it in robots.txt.
+"; }
+
+          # ══════════════════════════════════════════════════════════════
+          # LOW CHECKS
+          # ══════════════════════════════════════════════════════════════
+
+          # ── LOW: TODO/FIXME comments ──────────────────────────────────
+          TODO_COUNT=$(grep -rn "TODO\|FIXME\|HACK\|XXX" --include="*.html" --include="*.js" --include="*.css" . | wc -l)
+          if [ "$TODO_COUNT" -gt 0 ]; then
+            LOW=$((LOW+1))
+            FINDINGS="${FINDINGS}
+### LOW: $TODO_COUNT TODO/FIXME comment(s) in source files
+- **Why:** Unresolved TODO comments indicate incomplete work that may have been deployed.
+- **Fix:** Resolve or remove each comment. If work is deferred, track it as a GitHub issue instead.
+"
+          fi
+
+          # ── LOW: Hardcoded previous year ──────────────────────────────
+          PREV_YEAR=$(date -d "last year" +%Y 2>/dev/null || date -v-1y +%Y)
+          if grep -rn "$PREV_YEAR" --include="*.html" . | grep -v "footer-year\|<!--\|// \|privacy\|disclaimer" | grep -q .; then
+            LOW=$((LOW+1))
+            FINDINGS="${FINDINGS}
+### LOW: Hardcoded year $PREV_YEAR found
+- **Why:** Hardcoded copyright years must be manually updated each January. Dynamic JS is more reliable.
+- **Fix:** Use \`document.getElementById('footer-year').textContent = new Date().getFullYear()\` (already implemented in most pages — check for any remaining static instances).
+"
+          fi
+
+          # ── LOW: llms.txt ─────────────────────────────────────────────
+          [ ! -f "llms.txt" ] && { LOW=$((LOW+1)); FINDINGS="${FINDINGS}
+### LOW: llms.txt missing
+- **Why:** llms.txt signals to AI crawlers what content is and is not available for training.
+- **Fix:** Create llms.txt with appropriate directives. See Cloudflare AI Crawl Control for current crawler settings.
+"; }
+
+          # ══════════════════════════════════════════════════════════════
+          # TOTALS
+          # ══════════════════════════════════════════════════════════════
           TOTAL=$((CRITICAL+HIGH+MEDIUM+LOW))
 
           echo "critical=$CRITICAL" >> $GITHUB_OUTPUT
@@ -148,7 +341,6 @@ jobs:
           echo "low=$LOW"           >> $GITHUB_OUTPUT
           echo "total=$TOTAL"       >> $GITHUB_OUTPUT
 
-          # Write findings to file for next step
           printf "%b" "$FINDINGS" > /tmp/findings.txt
 
           if [ $TOTAL -gt 0 ]; then
@@ -157,45 +349,59 @@ jobs:
             echo "has_issues=false" >> $GITHUB_OUTPUT
           fi
 
-      - name: All clear
+      - name: All clear — send Zapier notification
         if: steps.scan.outputs.has_issues == 'false'
-        run: echo "Security Guardian — All clear. Checks passed."
+        run: |
+          SCAN_DATE=$(TZ=Australia/Melbourne date +%Y-%m-%d)
+          curl -s -X POST "${{ secrets.ZAPIER_NOTIFY_URL }}" \
+            -H "Content-Type: application/json" \
+            -d "{\"scan_type\":\"SECURITY\",\"scan_date\":\"$SCAN_DATE\",\"status\":\"ALL_CLEAR\",\"total_count\":0,\"auto_fixed_count\":0,\"needs_review_count\":0,\"github_issue_url\":\"\",\"run_url\":\"https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}\",\"findings_brief\":\"All security checks passed.\",\"email_subject\":\"carcorpaust.com.au | Sentry | Security | All clear ($SCAN_DATE)\"}" \
+            --max-time 15 || true
 
       - name: Create GitHub issue for findings
         if: steps.scan.outputs.has_issues == 'true'
         uses: actions/github-script@v7
         with:
+          github-token: ${{ secrets.PAT_TOKEN }}
           script: |
-            const fs = require('fs');
-            const findings = fs.readFileSync('/tmp/findings.txt', 'utf8');
-            const critical = '${{ steps.scan.outputs.critical }}';
-            const high     = '${{ steps.scan.outputs.high }}';
-            const medium   = '${{ steps.scan.outputs.medium }}';
-            const low      = '${{ steps.scan.outputs.low }}';
-            const total    = '${{ steps.scan.outputs.total }}';
-            const date     = new Date().toISOString().split('T')[0];
+            const fs   = require('fs');
+            const raw  = fs.readFileSync('/tmp/findings.txt', 'utf8');
+            const date = new Date().toISOString().split('T')[0];
 
-            const body = `## Security Guardian Report — ${date}
+            const critical = Number('${{ steps.scan.outputs.critical }}');
+            const high     = Number('${{ steps.scan.outputs.high }}');
+            const medium   = Number('${{ steps.scan.outputs.medium }}');
+            const low      = Number('${{ steps.scan.outputs.low }}');
+            const total    = Number('${{ steps.scan.outputs.total }}');
+
+            // Convert findings to a checklist
+            const checklist = raw
+              .split(/\n(?=### )/)
+              .filter(Boolean)
+              .map(block => `- [ ] ${block.trim()}`)
+              .join('\n\n');
+
+            const body = `## Security Audit — ${date}
 
             | Severity | Count |
-            |----------|-------|
-            | 🔴 Critical | ${critical} |
-            | 🟠 High | ${high} |
-            | 🟡 Medium | ${medium} |
-            | 🟢 Low | ${low} |
+            |---|---|
+            | Critical | ${critical} |
+            | High | ${high} |
+            | Medium | ${medium} |
+            | Low | ${low} |
             | **Total** | **${total}** |
 
             ---
 
-            ${findings}
+            ${checklist}
 
             ---
-            *Generated by Security Guardian workflow. Review and resolve before next deploy.*`;
+            *Generated by Web Developer: Security Audit. Auto Fix will attempt remediation on safe findings.*`;
 
             await github.rest.issues.create({
               owner: context.repo.owner,
-              repo: context.repo.repo,
-              title: `[Security Guardian] ${total} finding(s) — ${date}`,
-              body: body,
-              labels: ['security-guardian']
+              repo:  context.repo.repo,
+              title: `[Security Audit] ${total} finding(s) — ${date}`,
+              body:  body,
+              labels: ['security-guardian'],
             });

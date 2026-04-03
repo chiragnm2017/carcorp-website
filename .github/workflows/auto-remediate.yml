@@ -1,0 +1,409 @@
+name: "Web Developer: Auto Fix"
+
+on:
+  issues:
+    types: [opened]
+
+permissions:
+  contents: write
+  issues: write
+
+jobs:
+  remediate:
+    name: "Web Developer: Auto Fix"
+    runs-on: ubuntu-latest
+    if: |
+      contains(github.event.issue.labels.*.name, 'security-guardian') ||
+      contains(github.event.issue.labels.*.name, 'site-health')
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.PAT_TOKEN }}
+
+      - name: Fetch issue body
+        env:
+          GH_TOKEN: ${{ secrets.PAT_TOKEN }}
+        run: |
+          gh issue view ${{ github.event.issue.number }} \
+            --json body --jq '.body' > /tmp/issue_body.txt
+
+      - name: Run remediation script
+        env:
+          GH_TOKEN: ${{ secrets.PAT_TOKEN }}
+          ISSUE_NUMBER: ${{ github.event.issue.number }}
+        run: |
+          python3 - << 'PYEOF'
+          import os, re, sys
+          from pathlib import Path
+          from datetime import datetime
+
+          REPO         = Path(os.environ.get('GITHUB_WORKSPACE', '.'))
+          ISSUE_NUMBER = os.environ['ISSUE_NUMBER']
+          CURRENT_YEAR = str(datetime.now().year)
+
+          with open('/tmp/issue_body.txt') as f:
+              issue_body = f.read()
+
+          findings = [
+              line.strip()[5:].strip()
+              for line in issue_body.split('\n')
+              if line.strip().startswith('- [ ]')
+          ]
+          print(f'Found {len(findings)} open findings.')
+
+          # ── Helpers ────────────────────────────────────────────────────
+
+          def extract_file(text):
+              m = re.search(r'in `([^`]+\.html)`', text)
+              if m:
+                  path = REPO / m.group(1).lstrip('./')
+                  if path.exists():
+                      return path
+              return None
+
+          def read_file(path):
+              try:
+                  return path.read_text(encoding='utf-8')
+              except Exception:
+                  return None
+
+          def write_file(path, content):
+              path.write_text(content, encoding='utf-8')
+
+          # ── Classification rules ───────────────────────────────────────
+
+          REVIEW_PATTERNS = [
+              (r'Webhook URL exposed|fetching directly to.*webhook|Zapier.*URL',
+               'Credential/architecture issue — requires manual fix. Do not auto-remove without understanding the full flow.'),
+              (r'Possible.*API key|Possible.*token|Possible.*secret|Possible.*password|Private key|AWS',
+               'Credential must be rotated FIRST before the file is edited. Do not auto-remove.'),
+              (r'Unapproved script domain|Unapproved.*form action',
+               'May be a new intentional integration. Verify before removing.'),
+              (r'Unsafe.*innerHTML|open redirect|Inline event handler',
+               'Requires code logic change, not a string edit. Needs developer review.'),
+              (r'no-cors.*fetch|fetch.*no-cors',
+               'Requires switching to Worker proxy architecture — not a simple string replacement.'),
+              (r'SRI integrity|integrity attribute',
+               'Hashes must be generated from the live CDN file. Cannot be auto-generated safely.'),
+              (r'TODO|FIXME|HACK comment',
+               'Comment may refer to genuinely incomplete work. Needs human assessment.'),
+              (r'Inconsistent CSS cache',
+               'Version bump must be deliberate — check what changed before incrementing.'),
+              (r'Worker endpoint|/api/contact',
+               'Infrastructure issue — cannot be fixed by editing repo files.'),
+              (r'Page unavailable|returned HTTP|response suspiciously small',
+               'Deployment or hosting issue — check DigitalOcean App Platform logs.'),
+              (r'External.*domain|Unrecognised.*domain',
+               'New domain requires approval decision before adding to whitelist.'),
+          ]
+
+          EXTERNAL_PATTERNS = [
+              (r'Page.*returned HTTP|CDN unavailable|unreachable',
+               'Third-party or hosting issue — cannot be fixed by editing the repo.'),
+          ]
+
+          def classify(finding):
+              for pattern, reason in REVIEW_PATTERNS:
+                  if re.search(pattern, finding, re.IGNORECASE):
+                      return 'review', reason
+              for pattern, reason in EXTERNAL_PATTERNS:
+                  if re.search(pattern, finding, re.IGNORECASE):
+                      return 'external', reason
+              return 'auto', None
+
+          # ── Auto-fix rules ─────────────────────────────────────────────
+
+          auto_fixed   = []
+          needs_review = []
+          externals    = []
+
+          for finding in findings:
+              classification, reason = classify(finding)
+
+              if classification == 'review':
+                  needs_review.append((finding, reason))
+                  continue
+
+              if classification == 'external':
+                  externals.append((finding, reason))
+                  continue
+
+              filepath = extract_file(finding)
+              if not filepath:
+                  needs_review.append((finding, 'Could not determine target file from finding text.'))
+                  continue
+
+              content = read_file(filepath)
+              if content is None:
+                  needs_review.append((finding, f'Could not read {filepath}'))
+                  continue
+
+              original = content
+
+              # Missing viewport meta
+              if re.search(r'Missing.*viewport', finding, re.IGNORECASE):
+                  if 'name="viewport"' not in content:
+                      content = content.replace(
+                          '<meta charset',
+                          '<meta name="viewport" content="width=device-width, initial-scale=1.0">\n  <meta charset'
+                      )
+
+              # Missing charset
+              elif re.search(r'Missing.*charset', finding, re.IGNORECASE):
+                  if 'charset' not in content.lower():
+                      content = content.replace('<head>', '<head>\n  <meta charset="UTF-8">')
+
+              # Missing html lang
+              elif re.search(r'Missing.*html lang', finding, re.IGNORECASE):
+                  content = re.sub(r'<html(?!\s+lang)', '<html lang="en-AU"', content)
+
+              # Missing meta description
+              elif re.search(r'Missing.*meta.*description|Missing meta description', finding, re.IGNORECASE):
+                  if 'name="description"' not in content:
+                      title_m = re.search(r'<title>([^<]+)</title>', content)
+                      page_title = title_m.group(1).strip() if title_m else filepath.stem.title()
+                      # Strip " | Carcorp Australia" suffix if present for cleaner desc
+                      page_name = re.sub(r'\s*\|\s*Carcorp Australia.*', '', page_title).strip()
+                      desc = f'Carcorp Australia | {page_name}. Automotive recruitment specialists in permanent placements, temporary staffing, and career services across Victoria.'
+                      content = content.replace(
+                          '</title>',
+                          f'</title>\n  <meta name="description" content="{desc[:160]}">'
+                      )
+
+              # Missing alt attribute on images
+              elif re.search(r'missing alt|alt attribute', finding, re.IGNORECASE):
+                  content = re.sub(
+                      r'(<img\b(?![^>]*\balt=)[^>]*?)(/?>)',
+                      r'\1 alt=""\2',
+                      content
+                  )
+
+              # Missing DOCTYPE
+              elif re.search(r'Missing.*DOCTYPE', finding, re.IGNORECASE):
+                  if '<!DOCTYPE' not in content:
+                      content = '<!DOCTYPE html>\n' + content
+
+              # Outdated copyright year
+              elif re.search(r'Outdated.*year|hardcoded.*year|year.*hardcoded', finding, re.IGNORECASE):
+                  content = re.sub(r'(&copy;|©)\s*20\d{2}', f'&copy; {CURRENT_YEAR}', content)
+                  content = re.sub(r'(Copyright\s+)20\d{2}', f'\\g<1>{CURRENT_YEAR}', content, flags=re.IGNORECASE)
+
+              # Trailing whitespace
+              elif re.search(r'Trailing whitespace', finding, re.IGNORECASE):
+                  lines = content.split('\n')
+                  content = '\n'.join(line.rstrip() for line in lines)
+
+              # Unreplaced placeholder tokens
+              elif re.search(r'unreplaced.*TOKEN|{{TOKEN}}', finding, re.IGNORECASE):
+                  # Remove empty {{ }} placeholders — cannot fill content without context
+                  content = re.sub(r'\{\{[^}]*\}\}', '', content)
+
+              else:
+                  needs_review.append((finding, 'No matching auto-fix rule found.'))
+                  continue
+
+              if content != original:
+                  write_file(filepath, content)
+                  auto_fixed.append((finding, str(filepath.relative_to(REPO))))
+              else:
+                  needs_review.append((finding, 'Fix rule matched but no change was required (pattern not present in file).'))
+
+          # ── Write output files ─────────────────────────────────────────
+
+          with open('/tmp/auto_fixed.txt', 'w') as f:
+              for finding, fname in auto_fixed:
+                  f.write(f'FIXED: {fname} -- {finding[:80]}\n')
+
+          with open('/tmp/needs_review.txt', 'w') as f:
+              for finding, reason in needs_review:
+                  f.write(f'REVIEW: {finding[:100]} | {reason}\n')
+
+          with open('/tmp/externals.txt', 'w') as f:
+              for finding, reason in externals:
+                  f.write(f'EXTERNAL: {finding[:100]} | {reason}\n')
+
+          total = len(findings)
+          brief_lines = [f'Total findings: {total}', '']
+          if auto_fixed:
+              brief_lines.append(f'Auto-fixed ({len(auto_fixed)}):')
+              for finding, fname in auto_fixed:
+                  brief_lines.append(f'  - {fname}')
+              brief_lines.append('')
+          if needs_review:
+              brief_lines.append(f'Needs your review ({len(needs_review)}):')
+              for finding, reason in needs_review:
+                  clean = re.sub(r'^-\s*\[\s*\]\s*', '', finding)
+                  brief_lines.append(f'  - {clean[:90]}')
+              brief_lines.append('')
+          if externals:
+              brief_lines.append(f'External / outside repo ({len(externals)}):')
+              for finding, reason in externals:
+                  clean = re.sub(r'^-\s*\[\s*\]\s*', '', finding)
+                  brief_lines.append(f'  - {clean[:90]}')
+
+          with open('/tmp/findings_brief.txt', 'w') as f:
+              f.write('\n'.join(brief_lines))
+
+          with open('/tmp/counts.txt', 'w') as f:
+              f.write(f'{len(auto_fixed)}\n{len(needs_review)}\n{len(externals)}\n{total}')
+
+          print(f'Auto-fixed: {len(auto_fixed)} | Needs review: {len(needs_review)} | External: {len(externals)}')
+          PYEOF
+
+      - name: Commit auto-fixes
+        id: commit
+        run: |
+          git config user.name  "CarCorp Auto-Remediate"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add -A
+
+          if git diff --staged --quiet; then
+            echo "No changes to commit."
+            echo "commit_made=false" >> "$GITHUB_OUTPUT"
+            echo "commit_sha="       >> "$GITHUB_OUTPUT"
+          else
+            git commit -m "fix: auto-remediate findings from issue #${{ github.event.issue.number }} [skip ci]
+
+          $(cat /tmp/auto_fixed.txt)
+
+          Co-Authored-By: Claude Sonnet 4.6 <noreply@anthropic.com>"
+            git push
+            echo "commit_made=true"                       >> "$GITHUB_OUTPUT"
+            echo "commit_sha=$(git rev-parse HEAD)"       >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Update GitHub issue
+        env:
+          GH_TOKEN: ${{ secrets.PAT_TOKEN }}
+        run: |
+          FIXED_COUNT=$(grep -c '^FIXED:' /tmp/auto_fixed.txt 2>/dev/null || echo 0)
+          REVIEW_COUNT=$(grep -c '^REVIEW:' /tmp/needs_review.txt 2>/dev/null || echo 0)
+          EXTERNAL_COUNT=$(grep -c '^EXTERNAL:' /tmp/externals.txt 2>/dev/null || echo 0)
+          COMMIT="${{ steps.commit.outputs.commit_sha }}"
+          COMMIT_MADE="${{ steps.commit.outputs.commit_made }}"
+
+          COMMENT="## Auto-Remediation Complete
+
+          | | Count |
+          |---|---|
+          | Auto-fixed | ${FIXED_COUNT} |
+          | Needs your review | ${REVIEW_COUNT} |
+          | External (outside repo) | ${EXTERNAL_COUNT} |"
+
+          if [ "$COMMIT_MADE" = "true" ]; then
+            COMMENT="${COMMENT}
+
+          **Commit:** ${COMMIT}"
+          fi
+
+          if [ "$FIXED_COUNT" -gt 0 ]; then
+            COMMENT="${COMMENT}
+
+          ### Fixed
+          \`\`\`
+          $(cat /tmp/auto_fixed.txt)
+          \`\`\`"
+          fi
+
+          if [ "$REVIEW_COUNT" -gt 0 ]; then
+            COMMENT="${COMMENT}
+
+          ### Needs your review
+          These were not changed automatically — each requires a decision:
+
+          $(while IFS='|' read -r finding reason; do
+            echo "**${finding#REVIEW: }**"
+            echo "> ${reason}"
+            echo ""
+          done < /tmp/needs_review.txt)"
+          fi
+
+          if [ "$EXTERNAL_COUNT" -gt 0 ]; then
+            COMMENT="${COMMENT}
+
+          ### External (not fixable via repo)
+          $(while IFS='|' read -r finding reason; do
+            echo "- ${finding#EXTERNAL: }: *${reason}*"
+          done < /tmp/externals.txt)"
+          fi
+
+          gh issue comment ${{ github.event.issue.number }} --body "$COMMENT"
+
+          if [ "$REVIEW_COUNT" -eq 0 ] && [ "$EXTERNAL_COUNT" -eq 0 ] && [ "$FIXED_COUNT" -gt 0 ]; then
+            gh issue close ${{ github.event.issue.number }} \
+              --comment "All findings resolved automatically. Issue closed."
+          fi
+
+      - name: Send Zapier notification
+        if: always()
+        run: |
+          ZAPIER_URL="${{ secrets.ZAPIER_NOTIFY_URL }}"
+          SCAN_DATE=$(TZ=Australia/Melbourne date +%Y-%m-%d)
+          ISSUE_URL="https://github.com/${{ github.repository }}/issues/${{ github.event.issue.number }}"
+          ISSUE_TITLE="${{ github.event.issue.title }}"
+          COMMIT="${{ steps.commit.outputs.commit_sha }}"
+
+          if [ -f /tmp/counts.txt ]; then
+            FIXED=$(sed -n '1p' /tmp/counts.txt)
+            REVIEW=$(sed -n '2p' /tmp/counts.txt)
+            EXTERNAL=$(sed -n '3p' /tmp/counts.txt)
+            TOTAL=$(sed -n '4p' /tmp/counts.txt)
+          else
+            FIXED=0; REVIEW=0; EXTERNAL=0; TOTAL=0
+          fi
+
+          ATTENTION=$((REVIEW + EXTERNAL))
+
+          if echo "$ISSUE_TITLE" | grep -qi "security"; then
+            SCAN_TYPE="SECURITY"
+            SCAN_LABEL="Security"
+          else
+            SCAN_TYPE="SITE_HEALTH"
+            SCAN_LABEL="Site Health"
+          fi
+
+          if [ "$ATTENTION" -gt 0 ]; then
+            STATUS="NEEDS_REVIEW"
+            SUBJECT="carcorpaust.com.au | Sentry | ${SCAN_LABEL} | ${FIXED} fixed · ${ATTENTION} need attention (${SCAN_DATE})"
+          elif [ "$FIXED" -gt 0 ]; then
+            STATUS="AUTO_RESOLVED"
+            SUBJECT="carcorpaust.com.au | Sentry | ${SCAN_LABEL} | ${FIXED} fixed (${SCAN_DATE})"
+          else
+            STATUS="NO_ACTION"
+            SUBJECT="carcorpaust.com.au | Sentry | ${SCAN_LABEL} | No action taken (${SCAN_DATE})"
+          fi
+
+          BRIEF=""
+          [ -f /tmp/findings_brief.txt ] && BRIEF=$(cat /tmp/findings_brief.txt)
+
+          jq -n \
+            --arg scan_type        "$SCAN_TYPE" \
+            --arg scan_date        "$SCAN_DATE" \
+            --arg status           "$STATUS" \
+            --argjson total        "$TOTAL" \
+            --argjson auto_fixed   "$FIXED" \
+            --argjson needs_review "$ATTENTION" \
+            --arg github_issue_url "$ISSUE_URL" \
+            --arg run_url          "https://github.com/${{ github.repository }}/commit/${COMMIT}" \
+            --arg findings_brief   "$BRIEF" \
+            --arg subject          "$SUBJECT" \
+            '{
+              scan_type:          $scan_type,
+              scan_date:          $scan_date,
+              status:             $status,
+              total_count:        $total,
+              auto_fixed_count:   $auto_fixed,
+              needs_review_count: $needs_review,
+              github_issue_url:   $github_issue_url,
+              run_url:            $run_url,
+              findings_brief:     $findings_brief,
+              email_subject:      $subject
+            }' > /tmp/zapier-payload.json
+
+          HTTP=$(curl -s -o /dev/null -w "%{http_code}" \
+            -X POST "$ZAPIER_URL" \
+            -H "Content-Type: application/json" \
+            -d @/tmp/zapier-payload.json --max-time 15 || echo "000")
+          echo "Zapier notification: HTTP $HTTP"
