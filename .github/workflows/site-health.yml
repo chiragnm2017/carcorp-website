@@ -2,7 +2,7 @@ name: "Web Developer: Site Audit"
 
 on:
   schedule:
-    - cron: '0 20 * * *'   # 6am AEST (UTC+10). Change to '0 19 * * *' during AEDT (Oct-Apr)
+    - cron: '0 19 * * *'   # 6am AEDT (UTC+11). Change to '0 20 * * *' after AEDT ends (Apr)
   push:
     branches: [master]
   workflow_dispatch:

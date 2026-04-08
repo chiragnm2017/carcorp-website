@@ -2,7 +2,7 @@ name: "Web Developer: Security Audit"
 
 on:
   schedule:
-    - cron: '0 20 * * *'   # 6am AEST (UTC+10). Change to '0 19 * * *' during AEDT (Oct-Apr)
+    - cron: '0 19 * * *'   # 6am AEDT (UTC+11). Change to '0 20 * * *' after AEDT ends (Apr)
   push:
     branches: [master]
   workflow_dispatch:
@@ -248,7 +248,7 @@ $(echo "$INNERHTML_UNSAFE" | grep "innerHTML.*\$\|innerHTML.*+" | head -5)
           fi
 
           # ── MEDIUM: Missing meta description ─────────────────────────
-          for f in $(find . -name "*.html" -not -path "./.git/*" -not -name "404.html"); do
+          for f in $(find . -name "*.html" -not -path "./.git/*" -not -name "404.html" -not -path "./email-templates/*"); do
             if ! grep -q '<meta name="description"' "$f"; then
               MEDIUM=$((MEDIUM+1))
               FINDINGS="${FINDINGS}
@@ -260,7 +260,7 @@ $(echo "$INNERHTML_UNSAFE" | grep "innerHTML.*\$\|innerHTML.*+" | head -5)
           done
 
           # ── MEDIUM: Missing html lang attribute ───────────────────────
-          for f in $(find . -name "*.html" -not -path "./.git/*"); do
+          for f in $(find . -name "*.html" -not -path "./.git/*" -not -path "./email-templates/*"); do
             if ! grep -q '<html lang=' "$f"; then
               MEDIUM=$((MEDIUM+1))
               FINDINGS="${FINDINGS}
