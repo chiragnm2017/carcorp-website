@@ -220,7 +220,7 @@ jobs:
 
           # ── HIGH: Unsafe innerHTML with variable content ───────────────
           # careers.js is excluded: all dynamic content is escaped via escapeHtml() and data is from a static developer-controlled JSON file
-          INNERHTML_UNSAFE=$(grep -rn "innerHTML\s*=" --include="*.js" . | grep -v "worker/" | grep -v "careers.js" | grep -v "''" | grep -v '""' | grep -v "//")
+          INNERHTML_UNSAFE=$(grep -rn "innerHTML\s*=" --include="*.js" . | grep -v "worker/" | grep -v "careers.js" | grep -v "''" | grep -v '""' | grep -v "//" || true)
           if [ -n "$INNERHTML_UNSAFE" ] && echo "$INNERHTML_UNSAFE" | grep -q "innerHTML.*\$\|innerHTML.*+\|innerHTML.*template"; then
             HIGH=$((HIGH+1))
             FINDINGS="${FINDINGS}
