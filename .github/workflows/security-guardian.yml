@@ -49,13 +49,13 @@ jobs:
             CRITICAL=$((CRITICAL+1))
             SNIPPET=$(grep -rn "hooks\.zapier\.com\|hooks\.make\.com" --include="*.js" --include="*.html" . | grep -v "worker/" | head -3)
             FINDINGS="${FINDINGS}
-### CRITICAL: Webhook URL exposed in public client-side code
-- **Why:** The Zapier/Make webhook URL is a permanent credential. Once visible in public JS or HTML it is scraped by bots and used to POST spam directly to Zapier, bypassing all form validation and Turnstile CAPTCHA. This was the root cause of the blank form submission attack on 3 April 2026.
-- **Fix:** Remove the URL from client code. It must only exist as a secret in the Cloudflare Worker (Workers & Pages > carcorp-contact > Settings > Variables and Secrets > ZAPIER_WEBHOOK_URL). The form should POST to \`/api/contact\` only.
-\`\`\`
-$SNIPPET
-\`\`\`
-"
+          ### CRITICAL: Webhook URL exposed in public client-side code
+          - **Why:** The Zapier/Make webhook URL is a permanent credential. Once visible in public JS or HTML it is scraped by bots and used to POST spam directly to Zapier, bypassing all form validation and Turnstile CAPTCHA. This was the root cause of the blank form submission attack on 3 April 2026.
+          - **Fix:** Remove the URL from client code. It must only exist as a secret in the Cloudflare Worker (Workers & Pages > carcorp-contact > Settings > Variables and Secrets > ZAPIER_WEBHOOK_URL). The form should POST to \`/api/contact\` only.
+          \`\`\`
+          $SNIPPET
+          \`\`\`
+          "
           fi
 
           # ── CRITICAL: form.js posting directly to external webhook ────
@@ -64,13 +64,13 @@ $SNIPPET
             CRITICAL=$((CRITICAL+1))
             SNIPPET=$(grep -rn "fetch.*hooks\." --include="*.js" . | grep -v "worker/" | head -3)
             FINDINGS="${FINDINGS}
-### CRITICAL: Client-side JS is fetching directly to an external webhook
-- **Why:** All form submissions must route through the Cloudflare Worker at \`/api/contact\`. Posting directly to Zapier exposes the webhook URL and bypasses server-side Turnstile verification and field validation.
-- **Fix:** Change the fetch target in form.js to \`/api/contact\`. Ensure ZAPIER_WEBHOOK_URL is only in the Worker secret.
-\`\`\`
-$SNIPPET
-\`\`\`
-"
+          ### CRITICAL: Client-side JS is fetching directly to an external webhook
+          - **Why:** All form submissions must route through the Cloudflare Worker at \`/api/contact\`. Posting directly to Zapier exposes the webhook URL and bypasses server-side Turnstile verification and field validation.
+          - **Fix:** Change the fetch target in form.js to \`/api/contact\`. Ensure ZAPIER_WEBHOOK_URL is only in the Worker secret.
+          \`\`\`
+          $SNIPPET
+          \`\`\`
+          "
           fi
 
           # ── CRITICAL: Hardcoded secrets ───────────────────────────────
@@ -84,47 +84,47 @@ $SNIPPET
           if [ -n "$SECRET_HITS" ]; then
             CRITICAL=$((CRITICAL+1))
             FINDINGS="${FINDINGS}
-### CRITICAL: Possible hardcoded secret or credential detected
-- **Why:** Credentials in public code are immediately scraped by bots. Even after removal the exposure window may have been enough for abuse.
-- **Fix:** Rotate the credential immediately. Store it as a Cloudflare Worker secret or GitHub Actions secret. Remove from all files and git history if needed (git filter-repo).
-\`\`\`
-$(echo "$SECRET_HITS" | head -5)
-\`\`\`
-"
+          ### CRITICAL: Possible hardcoded secret or credential detected
+          - **Why:** Credentials in public code are immediately scraped by bots. Even after removal the exposure window may have been enough for abuse.
+          - **Fix:** Rotate the credential immediately. Store it as a Cloudflare Worker secret or GitHub Actions secret. Remove from all files and git history if needed (git filter-repo).
+          \`\`\`
+          $(echo "$SECRET_HITS" | head -5)
+          \`\`\`
+          "
           fi
 
           # ── CRITICAL: Dangerous JS patterns ──────────────────────────
           if grep -rn "eval(" --include="*.js" . | grep -v "worker/" | grep -v "//" | grep -q .; then
             CRITICAL=$((CRITICAL+1))
             FINDINGS="${FINDINGS}
-### CRITICAL: eval() usage found in client-side JS
-- **Why:** eval() executes arbitrary strings as code. It is a primary XSS vector and is banned by most Content-Security-Policies.
-- **Fix:** Rewrite the logic without eval(). Use JSON.parse() for data, or a lookup table for dynamic dispatch.
-\`\`\`
-$(grep -rn "eval(" --include="*.js" . | grep -v "worker/" | grep -v "//" | head -5)
-\`\`\`
-"
+          ### CRITICAL: eval() usage found in client-side JS
+          - **Why:** eval() executes arbitrary strings as code. It is a primary XSS vector and is banned by most Content-Security-Policies.
+          - **Fix:** Rewrite the logic without eval(). Use JSON.parse() for data, or a lookup table for dynamic dispatch.
+          \`\`\`
+          $(grep -rn "eval(" --include="*.js" . | grep -v "worker/" | grep -v "//" | head -5)
+          \`\`\`
+          "
           fi
 
           if grep -rn "new Function(" --include="*.js" . | grep -v "worker/" | grep -v "//" | grep -q .; then
             CRITICAL=$((CRITICAL+1))
             FINDINGS="${FINDINGS}
-### CRITICAL: new Function() usage found in client-side JS
-- **Why:** Equivalent to eval() — executes arbitrary code at runtime. Banned by CSP.
-- **Fix:** Replace with a static function or lookup table.
-"
+          ### CRITICAL: new Function() usage found in client-side JS
+          - **Why:** Equivalent to eval() — executes arbitrary code at runtime. Banned by CSP.
+          - **Fix:** Replace with a static function or lookup table.
+          "
           fi
 
           if grep -rn "document\.write(" --include="*.js" --include="*.html" . | grep -v "worker/" | grep -q .; then
             CRITICAL=$((CRITICAL+1))
             FINDINGS="${FINDINGS}
-### CRITICAL: document.write() found
-- **Why:** document.write() can overwrite the entire page and is a classic XSS injection point.
-- **Fix:** Use DOM manipulation methods (createElement, appendChild, innerHTML with sanitised input) instead.
-\`\`\`
-$(grep -rn "document\.write(" --include="*.js" --include="*.html" . | grep -v "worker/" | head -5)
-\`\`\`
-"
+          ### CRITICAL: document.write() found
+          - **Why:** document.write() can overwrite the entire page and is a classic XSS injection point.
+          - **Fix:** Use DOM manipulation methods (createElement, appendChild, innerHTML with sanitised input) instead.
+          \`\`\`
+          $(grep -rn "document\.write(" --include="*.js" --include="*.html" . | grep -v "worker/" | head -5)
+          \`\`\`
+          "
           fi
 
           # ── CRITICAL: Unapproved script domains ───────────────────────
@@ -134,10 +134,10 @@ $(grep -rn "document\.write(" --include="*.js" --include="*.html" . | grep -v "w
             if ! echo "$APPROVED_SCRIPT_DOMAINS" | grep -qw "$domain_clean"; then
               CRITICAL=$((CRITICAL+1))
               FINDINGS="${FINDINGS}
-### CRITICAL: Unapproved script domain: \`$domain_clean\`
-- **Why:** Scripts from unknown domains can be compromised to inject malicious code. Every external script domain must be explicitly approved.
-- **Fix:** If this domain is intentional, add it to APPROVED_SCRIPT_DOMAINS in this workflow. If not, remove the script tag.
-"
+          ### CRITICAL: Unapproved script domain: \`$domain_clean\`
+          - **Why:** Scripts from unknown domains can be compromised to inject malicious code. Every external script domain must be explicitly approved.
+          - **Fix:** If this domain is intentional, add it to APPROVED_SCRIPT_DOMAINS in this workflow. If not, remove the script tag.
+          "
             fi
           done
 
@@ -150,10 +150,10 @@ $(grep -rn "document\.write(" --include="*.js" --include="*.html" . | grep -v "w
             if ! grep -q "cf-turnstile-response" "js/form.js"; then
               HIGH=$((HIGH+1))
               FINDINGS="${FINDINGS}
-### HIGH: form.js does not verify Turnstile token before submission
-- **Why:** Without this check, the form can be submitted in a browser without completing the CAPTCHA — just by removing the Turnstile widget from the DOM via DevTools.
-- **Fix:** Add before the fetch call: \`const t = form.querySelector('[name=\"cf-turnstile-response\"]'); if (!t || !t.value) { showMessage('Please complete the security check.', 'error'); return; }\`
-"
+          ### HIGH: form.js does not verify Turnstile token before submission
+          - **Why:** Without this check, the form can be submitted in a browser without completing the CAPTCHA — just by removing the Turnstile widget from the DOM via DevTools.
+          - **Fix:** Add before the fetch call: \`const t = form.querySelector('[name=\"cf-turnstile-response\"]'); if (!t || !t.value) { showMessage('Please complete the security check.', 'error'); return; }\`
+          "
             fi
           fi
 
@@ -162,10 +162,10 @@ $(grep -rn "document\.write(" --include="*.js" --include="*.html" . | grep -v "w
             if ! grep -q "/api/contact" "js/form.js"; then
               HIGH=$((HIGH+1))
               FINDINGS="${FINDINGS}
-### HIGH: form.js is not routing through /api/contact Worker proxy
-- **Why:** Posting directly to Zapier exposes the webhook URL in public code and bypasses server-side Turnstile verification. The Worker at /api/contact must be the only point of entry.
-- **Fix:** Set CONTACT_ENDPOINT = '/api/contact' in form.js and remove any direct Zapier fetch calls.
-"
+          ### HIGH: form.js is not routing through /api/contact Worker proxy
+          - **Why:** Posting directly to Zapier exposes the webhook URL in public code and bypasses server-side Turnstile verification. The Worker at /api/contact must be the only point of entry.
+          - **Fix:** Set CONTACT_ENDPOINT = '/api/contact' in form.js and remove any direct Zapier fetch calls.
+          "
             fi
           fi
 
@@ -173,13 +173,13 @@ $(grep -rn "document\.write(" --include="*.js" --include="*.html" . | grep -v "w
           if grep -rn "no-cors" --include="*.js" . | grep -v "worker/" | grep -q .; then
             HIGH=$((HIGH+1))
             FINDINGS="${FINDINGS}
-### HIGH: no-cors fetch mode in client-side JS
-- **Why:** mode: 'no-cors' means the response is opaque — the code cannot read the status code and always assumes success. Failed submissions appear to succeed. This was present in the original form.js before the Worker proxy was introduced.
-- **Fix:** Remove no-cors and use a proper endpoint (the Worker at /api/contact) that returns readable JSON responses.
-\`\`\`
-$(grep -rn "no-cors" --include="*.js" . | grep -v "worker/" | head -3)
-\`\`\`
-"
+          ### HIGH: no-cors fetch mode in client-side JS
+          - **Why:** mode: 'no-cors' means the response is opaque — the code cannot read the status code and always assumes success. Failed submissions appear to succeed. This was present in the original form.js before the Worker proxy was introduced.
+          - **Fix:** Remove no-cors and use a proper endpoint (the Worker at /api/contact) that returns readable JSON responses.
+          \`\`\`
+          $(grep -rn "no-cors" --include="*.js" . | grep -v "worker/" | head -3)
+          \`\`\`
+          "
           fi
 
           # ── HIGH: Inline event handlers ───────────────────────────────
@@ -187,10 +187,10 @@ $(grep -rn "no-cors" --include="*.js" . | grep -v "worker/" | head -3)
           if [ "$INLINE_EVENTS" -gt 0 ]; then
             HIGH=$((HIGH+1))
             FINDINGS="${FINDINGS}
-### HIGH: $INLINE_EVENTS inline event handler(s) found in HTML
-- **Why:** Inline handlers (onclick=, onsubmit=, etc.) are incompatible with Content-Security-Policy and create XSS risk if any user-controlled data reaches them.
-- **Fix:** Move all event handling to JS files using addEventListener().
-"
+          ### HIGH: $INLINE_EVENTS inline event handler(s) found in HTML
+          - **Why:** Inline handlers (onclick=, onsubmit=, etc.) are incompatible with Content-Security-Policy and create XSS risk if any user-controlled data reaches them.
+          - **Fix:** Move all event handling to JS files using addEventListener().
+          "
           fi
 
           # ── HIGH: External scripts without SRI integrity attribute ─────
@@ -198,23 +198,23 @@ $(grep -rn "no-cors" --include="*.js" . | grep -v "worker/" | head -3)
           if [ "$SRI_MISSING" -gt 0 ]; then
             HIGH=$((HIGH+1))
             FINDINGS="${FINDINGS}
-### HIGH: $SRI_MISSING external <script> tag(s) loaded without SRI integrity attribute
-- **Why:** If the CDN is compromised, the script is silently replaced with malicious code. SRI ensures the browser rejects any script that does not match the expected hash.
-- **Fix:** Generate integrity hashes at srihash.org and add integrity= and crossorigin=anonymous to each <script> tag.
-"
+          ### HIGH: $SRI_MISSING external <script> tag(s) loaded without SRI integrity attribute
+          - **Why:** If the CDN is compromised, the script is silently replaced with malicious code. SRI ensures the browser rejects any script that does not match the expected hash.
+          - **Fix:** Generate integrity hashes at srihash.org and add integrity= and crossorigin=anonymous to each <script> tag.
+          "
           fi
 
           # ── HIGH: Mixed content (http:// resources) ───────────────────
           if grep -rn 'src="http://' --include="*.html" . | grep -q .; then
             HIGH=$((HIGH+1))
             FINDINGS="${FINDINGS}
-### HIGH: Mixed content detected — http:// resource on an https:// page
-- **Why:** Browsers block or warn on mixed content. An http:// script can be intercepted and replaced via MITM.
-- **Fix:** Change all resource URLs to https://.
-\`\`\`
-$(grep -rn 'src="http://' --include="*.html" . | head -5)
-\`\`\`
-"
+          ### HIGH: Mixed content detected — http:// resource on an https:// page
+          - **Why:** Browsers block or warn on mixed content. An http:// script can be intercepted and replaced via MITM.
+          - **Fix:** Change all resource URLs to https://.
+          \`\`\`
+          $(grep -rn 'src="http://' --include="*.html" . | head -5)
+          \`\`\`
+          "
           fi
 
           # ── HIGH: Unsafe innerHTML with variable content ───────────────
@@ -222,13 +222,13 @@ $(grep -rn 'src="http://' --include="*.html" . | head -5)
           if echo "$INNERHTML_UNSAFE" | grep -v "^$" | grep -q "innerHTML.*\$\|innerHTML.*+\|innerHTML.*template"; then
             HIGH=$((HIGH+1))
             FINDINGS="${FINDINGS}
-### HIGH: Unsafe innerHTML assignment with dynamic content
-- **Why:** Assigning unsanitised variable content to innerHTML enables XSS. An attacker who controls the data source can inject script tags.
-- **Fix:** Use textContent for plain text. If HTML is required, sanitise with DOMPurify or escape all user-controlled values before insertion.
-\`\`\`
-$(echo "$INNERHTML_UNSAFE" | grep "innerHTML.*\$\|innerHTML.*+" | head -5)
-\`\`\`
-"
+          ### HIGH: Unsafe innerHTML assignment with dynamic content
+          - **Why:** Assigning unsanitised variable content to innerHTML enables XSS. An attacker who controls the data source can inject script tags.
+          - **Fix:** Use textContent for plain text. If HTML is required, sanitise with DOMPurify or escape all user-controlled values before insertion.
+          \`\`\`
+          $(echo "$INNERHTML_UNSAFE" | grep "innerHTML.*\$\|innerHTML.*+" | head -5)
+          \`\`\`
+          "
           fi
 
           # ══════════════════════════════════════════════════════════════
@@ -241,10 +241,10 @@ $(echo "$INNERHTML_UNSAFE" | grep "innerHTML.*\$\|innerHTML.*+" | head -5)
           if [ "$NOVALIDATE_COUNT" -gt 0 ] && [ "$JS_VALIDATION" -eq 0 ]; then
             MEDIUM=$((MEDIUM+1))
             FINDINGS="${FINDINGS}
-### MEDIUM: Form uses novalidate but no JS validation found
-- **Why:** novalidate disables all browser HTML5 validation. Without a JS replacement, users can submit empty required fields.
-- **Fix:** Ensure form.js validates all [required] fields before allowing submission.
-"
+          ### MEDIUM: Form uses novalidate but no JS validation found
+          - **Why:** novalidate disables all browser HTML5 validation. Without a JS replacement, users can submit empty required fields.
+          - **Fix:** Ensure form.js validates all [required] fields before allowing submission.
+          "
           fi
 
           # ── MEDIUM: Missing meta description ─────────────────────────
@@ -252,10 +252,10 @@ $(echo "$INNERHTML_UNSAFE" | grep "innerHTML.*\$\|innerHTML.*+" | head -5)
             if ! grep -q '<meta name="description"' "$f"; then
               MEDIUM=$((MEDIUM+1))
               FINDINGS="${FINDINGS}
-### MEDIUM: Missing meta description in \`$f\`
-- **Why:** Meta descriptions appear in Google search results. Missing descriptions reduce click-through rates and hurt SEO.
-- **Fix:** Add \`<meta name=\"description\" content=\"...\">\` in the <head> section.
-"
+          ### MEDIUM: Missing meta description in \`$f\`
+          - **Why:** Meta descriptions appear in Google search results. Missing descriptions reduce click-through rates and hurt SEO.
+          - **Fix:** Add \`<meta name=\"description\" content=\"...\">\` in the <head> section.
+          "
             fi
           done
 
@@ -264,10 +264,10 @@ $(echo "$INNERHTML_UNSAFE" | grep "innerHTML.*\$\|innerHTML.*+" | head -5)
             if ! grep -q '<html lang=' "$f"; then
               MEDIUM=$((MEDIUM+1))
               FINDINGS="${FINDINGS}
-### MEDIUM: Missing html lang attribute in \`$f\`
-- **Why:** Screen readers use the lang attribute to select the correct language voice. Required for WCAG accessibility compliance.
-- **Fix:** Change <html> to <html lang=\"en-AU\">.
-"
+          ### MEDIUM: Missing html lang attribute in \`$f\`
+          - **Why:** Screen readers use the lang attribute to select the correct language voice. Required for WCAG accessibility compliance.
+          - **Fix:** Change <html> to <html lang=\"en-AU\">.
+          "
             fi
           done
 
@@ -278,24 +278,24 @@ $(echo "$INNERHTML_UNSAFE" | grep "innerHTML.*\$\|innerHTML.*+" | head -5)
             if ! echo "$KNOWN_DOMAINS" | grep -qw "$domain" && [ -n "$domain" ]; then
               MEDIUM=$((MEDIUM+1))
               FINDINGS="${FINDINGS}
-### MEDIUM: Unrecognised external domain detected: \`$domain\`
-- **Why:** New external domains in code may indicate a supply-chain addition, a mistake, or a compromised dependency.
-- **Fix:** If intentional, add \`$domain\` to KNOWN_DOMAINS in this workflow. If unexpected, investigate immediately.
-"
+          ### MEDIUM: Unrecognised external domain detected: \`$domain\`
+          - **Why:** New external domains in code may indicate a supply-chain addition, a mistake, or a compromised dependency.
+          - **Fix:** If intentional, add \`$domain\` to KNOWN_DOMAINS in this workflow. If unexpected, investigate immediately.
+          "
             fi
           done
 
           # ── MEDIUM: robots.txt and sitemap.xml ───────────────────────
           [ ! -f "robots.txt" ]  && { MEDIUM=$((MEDIUM+1)); FINDINGS="${FINDINGS}
-### MEDIUM: robots.txt missing
-- **Why:** Without robots.txt, all crawlers including malicious scrapers have no guidance on what to index.
-- **Fix:** Create robots.txt with at minimum: \`User-agent: *\` / \`Disallow:\` and a Sitemap: reference.
-"; }
+          ### MEDIUM: robots.txt missing
+          - **Why:** Without robots.txt, all crawlers including malicious scrapers have no guidance on what to index.
+          - **Fix:** Create robots.txt with at minimum: \`User-agent: *\` / \`Disallow:\` and a Sitemap: reference.
+          "; }
           [ ! -f "sitemap.xml" ] && { MEDIUM=$((MEDIUM+1)); FINDINGS="${FINDINGS}
-### MEDIUM: sitemap.xml missing
-- **Why:** Search engines use sitemap.xml to discover pages. Without it, new pages may take months to be indexed.
-- **Fix:** Generate a sitemap.xml listing all public pages and reference it in robots.txt.
-"; }
+          ### MEDIUM: sitemap.xml missing
+          - **Why:** Search engines use sitemap.xml to discover pages. Without it, new pages may take months to be indexed.
+          - **Fix:** Generate a sitemap.xml listing all public pages and reference it in robots.txt.
+          "; }
 
           # ══════════════════════════════════════════════════════════════
           # LOW CHECKS
@@ -306,10 +306,10 @@ $(echo "$INNERHTML_UNSAFE" | grep "innerHTML.*\$\|innerHTML.*+" | head -5)
           if [ "$TODO_COUNT" -gt 0 ]; then
             LOW=$((LOW+1))
             FINDINGS="${FINDINGS}
-### LOW: $TODO_COUNT TODO/FIXME comment(s) in source files
-- **Why:** Unresolved TODO comments indicate incomplete work that may have been deployed.
-- **Fix:** Resolve or remove each comment. If work is deferred, track it as a GitHub issue instead.
-"
+          ### LOW: $TODO_COUNT TODO/FIXME comment(s) in source files
+          - **Why:** Unresolved TODO comments indicate incomplete work that may have been deployed.
+          - **Fix:** Resolve or remove each comment. If work is deferred, track it as a GitHub issue instead.
+          "
           fi
 
           # ── LOW: Hardcoded previous year ──────────────────────────────
@@ -317,18 +317,18 @@ $(echo "$INNERHTML_UNSAFE" | grep "innerHTML.*\$\|innerHTML.*+" | head -5)
           if grep -rn "$PREV_YEAR" --include="*.html" . | grep -v "footer-year\|<!--\|// \|privacy\|disclaimer" | grep -q .; then
             LOW=$((LOW+1))
             FINDINGS="${FINDINGS}
-### LOW: Hardcoded year $PREV_YEAR found
-- **Why:** Hardcoded copyright years must be manually updated each January. Dynamic JS is more reliable.
-- **Fix:** Use \`document.getElementById('footer-year').textContent = new Date().getFullYear()\` (already implemented in most pages — check for any remaining static instances).
-"
+          ### LOW: Hardcoded year $PREV_YEAR found
+          - **Why:** Hardcoded copyright years must be manually updated each January. Dynamic JS is more reliable.
+          - **Fix:** Use \`document.getElementById('footer-year').textContent = new Date().getFullYear()\` (already implemented in most pages — check for any remaining static instances).
+          "
           fi
 
           # ── LOW: llms.txt ─────────────────────────────────────────────
           [ ! -f "llms.txt" ] && { LOW=$((LOW+1)); FINDINGS="${FINDINGS}
-### LOW: llms.txt missing
-- **Why:** llms.txt signals to AI crawlers what content is and is not available for training.
-- **Fix:** Create llms.txt with appropriate directives. See Cloudflare AI Crawl Control for current crawler settings.
-"; }
+          ### LOW: llms.txt missing
+          - **Why:** llms.txt signals to AI crawlers what content is and is not available for training.
+          - **Fix:** Create llms.txt with appropriate directives. See Cloudflare AI Crawl Control for current crawler settings.
+          "; }
 
           # ══════════════════════════════════════════════════════════════
           # TOTALS
