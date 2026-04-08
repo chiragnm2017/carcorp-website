@@ -13,7 +13,7 @@ env:
   # Domains approved to appear in form action= or fetch() calls in client JS
   APPROVED_FETCH_DOMAINS: "challenges.cloudflare.com /api/contact"
   # All known external domains (for new-domain detection)
-  KNOWN_DOMAINS: "fonts.googleapis.com fonts.gstatic.com challenges.cloudflare.com www.googletagmanager.com images.pexels.com carcorpaust.com.au schema.org"
+  KNOWN_DOMAINS: "fonts.googleapis.com fonts.gstatic.com challenges.cloudflare.com www.googletagmanager.com images.pexels.com carcorpaust.com.au schema.org www.oaic.gov.au"
   # Strings that look like secrets but are intentional and approved
   SECRET_WHITELIST: "0x4AAAAAACzGLxJ5iVvOz34_ GTM-KJ8C8QLH"
 
@@ -194,7 +194,8 @@ jobs:
           fi
 
           # ── HIGH: External scripts without SRI integrity attribute ─────
-          SRI_MISSING=$(grep -rn '<script src="https://' --include="*.html" . | grep -v 'integrity=' | wc -l)
+          # challenges.cloudflare.com (Turnstile) intentionally excluded — Cloudflare does not publish SRI hashes for Turnstile
+          SRI_MISSING=$(grep -rn '<script src="https://' --include="*.html" . | grep -v 'integrity=' | grep -v 'challenges.cloudflare.com' | wc -l)
           if [ "$SRI_MISSING" -gt 0 ]; then
             HIGH=$((HIGH+1))
             FINDINGS="${FINDINGS}
@@ -272,7 +273,7 @@ jobs:
           done
 
           # ── MEDIUM: New unrecognised external domains ─────────────────
-          ALL_EXTERNAL=$(grep -roh 'https://[^/"]*' --include="*.html" --include="*.js" . \
+          ALL_EXTERNAL=$(grep -roh "https://[^/\"';[:space:]]*" --include="*.html" --include="*.js" . \
             | grep -v "worker/" | sed 's|https://||' | cut -d'/' -f1 | sort -u || true)
           for domain in $ALL_EXTERNAL; do
             if ! echo "$KNOWN_DOMAINS" | grep -qw "$domain" && [ -n "$domain" ]; then
